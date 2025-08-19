@@ -8,6 +8,8 @@ defmodule OpenDevCoach.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      # Start the Ecto repository
+      OpenDevCoach.Repo
       # Starts a worker by calling: OpenDevCoach.Worker.start_link(arg)
       # {OpenDevCoach.Worker, arg}
     ]
