@@ -21,3 +21,7 @@ open_dev_coach-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Database files
+*.db
+*.db-*
