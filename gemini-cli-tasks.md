@@ -6,22 +6,22 @@ This file breaks down the implementation plan into a series of pull requests wit
 
 **Goal:** Establish the project's foundation with database connectivity and basic application structure.
 
-- [ ] **Project Dependencies:**
-    - [ ] Add `ecto_sqlite3` and `ecto` to `mix.exs`.
-    - [ ] Run `mix deps.get`.
-- [ ] **Ecto Configuration:**
-    - [ ] Create `OpenDevCoach.Repo` module.
-    - [ ] Configure the repo in `config/config.exs` for dev, test, and prod environments.
-- [ ] **Database Migrations:**
-    - [ ] Create an initial migration for the `tasks` table.
-    - [ ] Create a migration for the `configurations` table.
-    - [ ] Create a migration for the `checkins` table.
-    - [ ] Create a migration for the `agent_history` table.
-- [ ] **Database Setup:**
-    - [ ] Run `mix ecto.create`.
-    - [ ] Run `mix ecto.migrate`.
-- [ ] **Application Supervision:**
-    - [ ] Add `OpenDevCoach.Repo` to the supervision tree in `lib/open_dev_coach/application.ex`.
+- [x] **Project Dependencies:**
+    - [x] Add `ecto_sqlite3` and `ecto` to `mix.exs`.
+    - [x] Run `mix deps.get`.
+- [x] **Ecto Configuration:**
+    - [x] Create `OpenDevCoach.Repo` module.
+    - [x] Configure the repo in `config/config.exs` for dev, test, and prod environments.
+- [x] **Database Migrations:**
+    - [x] Create an initial migration for the `tasks` table.
+    - [x] Create a migration for the `configurations` table.
+    - [x] Create a migration for the `checkins` table.
+    - [x] Create a migration for the `agent_history` table.
+- [x] **Database Setup:**
+    - [x] Run `mix ecto.create`.
+    - [x] Run `mix ecto.migrate`.
+- [x] **Application Supervision:**
+    - [x] Add `OpenDevCoach.Repo` to the supervision tree in `lib/open_dev_coach/application.ex`.
 
 ## Pull Request 2: Basic REPL and Command Parsing
 
