@@ -55,7 +55,7 @@ Task statuses include:
 *   `/config test`: Test the AI connection with your current API key.
 *   `/config status`: Check the current AI service status.
 
-Config keys include `ai_provider`, `ai_model`, `ai_api_key`.
+Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user set custom prompt).
 
 #### Check-in Management (`/checkin`)
 *   `/checkin add <time>`: Schedule a daily check-in time.

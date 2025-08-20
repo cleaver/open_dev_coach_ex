@@ -59,6 +59,7 @@ This file breaks down the implementation plan into a series of pull requests wit
 ## [PR-4] Pull Request 4: Configuration Management Feature
 
 **Goal:** Allow users to configure the application, especially for AI settings.
+Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user set custom prompt).
 
 - [ ] **Ecto Context:**
     - [ ] Create the `OpenDevCoach.Configuration` context module.
