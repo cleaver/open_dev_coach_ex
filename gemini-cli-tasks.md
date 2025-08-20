@@ -61,15 +61,15 @@ This file breaks down the implementation plan into a series of pull requests wit
 **Goal:** Allow users to configure the application, especially for AI settings.
 Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user set custom prompt).
 
-- [ ] **Ecto Context:**
-    - [ ] Create the `OpenDevCoach.Configuration` context module.
-    - [ ] Implement `get_config/1`, `set_config/2`, `list_configs/0`, and `reset_config/0`.
-- [ ] **Session Logic:**
-    - [ ] Add functions to the `Session` GenServer to handle configuration logic by calling the `Configuration` context.
-- [ ] **Command Integration:**
-    - [ ] Implement the `/config` subcommands (`set`, `get`, `list`, `reset`) in `CLI.Commands`, delegating to the `Session` GenServer.
-- [ ] **Gitignore:**
-    - [ ] Ensure the SQLite database file is added to `.gitignore`.
+- [x] **Ecto Context:**
+    - [x] Create the `OpenDevCoach.Configuration` context module.
+    - [x] Implement `get_config/1`, `set_config/2`, `list_configs/0`, and `reset_config/0`.
+- [x] **Session Logic:**
+    - [x] Add functions to the `Session` GenServer to handle configuration logic by calling the `Configuration` context.
+- [x] **Command Integration:**
+    - [x] Implement the `/config` subcommands (`set`, `get`, `list`, `reset`) in `CLI.Commands`, delegating to the `Session` GenServer.
+- [x] **Gitignore:**
+    - [x] Ensure the SQLite database file is added to `.gitignore`.
 
 ## [PR-5] Pull Request 5: AI Provider Abstraction & Integration
 
