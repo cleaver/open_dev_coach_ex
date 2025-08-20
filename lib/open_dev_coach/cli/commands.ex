@@ -6,14 +6,17 @@ defmodule OpenDevCoach.CLI.Commands do
   handling basic commands and routing non-commands to the AI system.
   """
 
+  alias OpenDevCoach.CLI.TaskCommands
+
   @doc """
   Returns the map of available commands for the REPL.
   """
   def commands do
     %{
-      "help" => {__MODULE__, :help, []},
-      "quit" => {__MODULE__, :quit, []},
-      "catchall_handler" => {__MODULE__, :handle_unknown, []}
+      "/help" => {__MODULE__, :help, []},
+      "/quit" => {__MODULE__, :quit, []},
+      "/task" => {TaskCommands, :dispatch, []},
+      "/catchall_handler" => {__MODULE__, :handle_unknown, []}
     }
   end
 
@@ -27,6 +30,14 @@ defmodule OpenDevCoach.CLI.Commands do
     Available Commands:
       /help          - Show this help message
       /quit          - Exit the application
+
+    Task Management:
+      /task add <description>     - Add a new task
+      /task list                  - List all tasks
+      /task start <number>        - Start working on a task
+      /task complete <number>     - Mark a task as completed
+      /task remove <number>       - Remove a task
+      /task backup                - Create backup of all tasks
 
     Any other input will be sent to your AI coach for assistance.
     """

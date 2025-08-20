@@ -45,16 +45,16 @@ This file breaks down the implementation plan into a series of pull requests wit
 
 **Goal:** Implement the full suite of task management commands.
 
-- [ ] **Ecto Context:**
-    - [ ] Create the `OpenDevCoach.Tasks` context module.
-    - [ ] Implement `list_tasks/0`, `add_task/1`, `get_task/1`, `update_task_status/2`, and `remove_task/1`.
-- [ ] **Session Logic:**
-    - [ ] Implement corresponding functions in the `OpenDevCoach.Session` GenServer that call the `Tasks` context.
-- [ ] **Command Integration:**
-    - [ ] In `OpenDevCoach.CLI.Commands`, implement the functions for `/task add`, `/task list`, `/task start`, `/task complete`, and `/task remove`.
-    - [ ] These functions will parse arguments and call the `Session` GenServer to execute the logic.
-- [ ] **Backup Feature:**
-    - [ ] Implement the `/task backup` command in `CLI.Commands` and the backing logic in the `Session` GenServer.
+- [x] **Ecto Context:**
+    - [x] Create the `OpenDevCoach.Tasks` context module.
+    - [x] Implement `list_tasks/0`, `add_task/1`, `get_task/1`, `update_task_status/2`, and `remove_task/1`.
+- [x] **Session Logic:**
+    - [x] Implement corresponding functions in the `OpenDevCoach.Session` GenServer that call the `Tasks` context.
+- [x] **Command Integration:**
+    - [x] In `OpenDevCoach.CLI.Commands`, implement the functions for `/task add`, `/task list`, `/task start`, `/task complete`, and `/task remove`.
+    - [x] These functions will parse arguments and call the `Session` GenServer to execute the logic.
+- [x] **Backup Feature:**
+    - [x] Implement the `/task backup` command in `CLI.Commands` and the backing logic in the `Session` GenServer.
 
 ## Pull Request 4: Configuration Management Feature
 
