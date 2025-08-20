@@ -9,6 +9,7 @@ defmodule OpenDevCoach.Session do
   use GenServer
   require Logger
   alias OpenDevCoach.Tasks
+  alias OpenDevCoach.Configuration
 
   @doc """
   Starts the Session GenServer.
@@ -65,6 +66,36 @@ defmodule OpenDevCoach.Session do
   """
   def backup_tasks do
     GenServer.call(__MODULE__, {:backup_tasks})
+  end
+
+  # Configuration Management Functions
+
+  @doc """
+  Gets a configuration value by key.
+  """
+  def get_config(key) do
+    GenServer.call(__MODULE__, {:get_config, key})
+  end
+
+  @doc """
+  Sets a configuration key-value pair.
+  """
+  def set_config(key, value) do
+    GenServer.call(__MODULE__, {:set_config, key, value})
+  end
+
+  @doc """
+  Lists all configuration settings.
+  """
+  def list_configs do
+    GenServer.call(__MODULE__, {:list_configs})
+  end
+
+  @doc """
+  Resets all configuration to defaults.
+  """
+  def reset_config do
+    GenServer.call(__MODULE__, {:reset_config})
   end
 
   @impl true
@@ -126,6 +157,43 @@ defmodule OpenDevCoach.Session do
 
       {:error, reason} ->
         {:reply, {:error, "Failed to backup tasks: #{reason}"}, state}
+    end
+  end
+
+  # Configuration Management Callbacks
+
+  def handle_call({:get_config, key}, _from, state) do
+    case Configuration.get_config(key) do
+      nil ->
+        {:reply, {:ok, "Configuration key '#{key}' not found"}, state}
+
+      value ->
+        {:reply, {:ok, "#{key}: #{value}"}, state}
+    end
+  end
+
+  def handle_call({:set_config, key, value}, _from, state) do
+    case Configuration.set_config(key, value) do
+      {:ok, _config} ->
+        message = "Configuration '#{key}' set to '#{value}'"
+        {:reply, {:ok, message}, state}
+
+      {:error, changeset} ->
+        error_message = format_changeset_errors(changeset)
+        {:reply, {:error, error_message}, state}
+    end
+  end
+
+  def handle_call({:list_configs}, _from, state) do
+    configs = Configuration.list_configs()
+    message = format_config_list(configs)
+    {:reply, {:ok, message}, state}
+  end
+
+  def handle_call({:reset_config}, _from, state) do
+    case Configuration.reset_config() do
+      {:ok, message} ->
+        {:reply, {:ok, message}, state}
     end
   end
 
@@ -196,5 +264,32 @@ defmodule OpenDevCoach.Session do
         end)
         |> Enum.join("\n")
     end
+  end
+
+  defp format_config_list(configs) do
+    case configs do
+      [] ->
+        "No configuration settings found. Use `/config set <key> <value>` to add some."
+
+      _ ->
+        configs
+        |> Enum.map(fn {key, value} ->
+          "  #{key}: #{value}"
+        end)
+        |> Enum.join("\n")
+        |> then(&"Configuration Settings:\n#{&1}")
+    end
+  end
+
+  defp format_changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Enum.map(fn {field, errors} ->
+      "#{field}: #{Enum.join(errors, ", ")}"
+    end)
+    |> Enum.join("; ")
   end
 end

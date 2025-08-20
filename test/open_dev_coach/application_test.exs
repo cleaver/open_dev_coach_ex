@@ -26,8 +26,10 @@ defmodule OpenDevCoach.ApplicationTest do
     # This test would require more complex setup to actually test REPL interaction
     # For now, we just verify the command structure is correct
     commands = OpenDevCoach.CLI.Commands.commands()
-    assert Map.has_key?(commands, "help")
-    assert Map.has_key?(commands, "quit")
+    assert Map.has_key?(commands, "/help")
+    assert Map.has_key?(commands, "/quit")
+    assert Map.has_key?(commands, "/task")
+    assert Map.has_key?(commands, "/config")
   end
 
   test "application shuts down cleanly on quit" do
