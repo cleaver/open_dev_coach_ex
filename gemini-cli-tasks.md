@@ -27,19 +27,19 @@ This file breaks down the implementation plan into a series of pull requests wit
 
 **Goal:** Make the application interactive by correctly setting up `tio_comodo` and its command handler.
 
-- [ ] **Session GenServer:**
-    - [ ] Create the main `OpenDevCoach.Session` GenServer for state management.
-    - [ ] Add the `Session` GenServer to the supervision tree.
-- [ ] **CLI Command Handler:**
-    - [ ] Create the `OpenDevCoach.CLI.Commands` module.
-    - [ ] Implement a `commands/0` function that returns a map for `/help` and `/quit`.
-    - [ ] Implement the `hello/1` and `quit/1` functions.
-    - [ ] Implement a `handle_unknown/1` catchall function that echoes the input for now.
-- [ ] **TioComodo Configuration:**
-    - [ ] In `config/config.exs`, configure `tio_comodo` to use `OpenDevCoach.CLI.Commands` as the `simple_provider` and `catchall_handler`.
-- [ ] **Supervisor Integration:**
-    - [ ] In `lib/open_dev_coach/application.ex`, add `TioComodo.Repl.Server` to the supervision tree.
-    - [ ] Add the `spawn_link` process for listening to `:repl_terminated` to ensure clean shutdown, as shown in the `tio_comodo` documentation.
+- [x] **Session GenServer:**
+    - [x] Create the main `OpenDevCoach.Session` GenServer for state management.
+    - [x] Add the `Session` GenServer to the supervision tree.
+- [x] **CLI Command Handler:**
+    - [x] Create the `OpenDevCoach.CLI.Commands` module.
+    - [x] Implement a `commands/0` function that returns a map for `/help` and `/quit`.
+    - [x] Implement the `hello/1` and `quit/1` functions.
+    - [x] Implement a `handle_unknown/1` catchall function that echoes the input for now.
+- [x] **TioComodo Configuration:**
+    - [x] In `config/config.exs`, configure `tio_comodo` to use `OpenDevCoach.CLI.Commands` as the `simple_provider` and `catchall_handler`.
+- [x] **Supervisor Integration:**
+    - [x] In `lib/open_dev_coach/application.ex`, add `TioComodo.Repl.Server` to the supervision tree.
+    - [x] Add the `spawn_link` process for listening to `:repl_terminated` to ensure clean shutdown, as shown in the `tio_comodo` documentation.
 
 ## Pull Request 3: Task Management Feature
 
