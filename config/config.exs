@@ -9,6 +9,10 @@ config :open_dev_coach, OpenDevCoach.Repo,
 config :open_dev_coach,
   ecto_repos: [OpenDevCoach.Repo]
 
+# Configure TioComodo REPL
+config :tio_comodo,
+  simple_provider: {OpenDevCoach.CLI.Commands, :commands}
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
