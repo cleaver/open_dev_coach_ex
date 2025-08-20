@@ -7,6 +7,7 @@ defmodule OpenDevCoach.CLI.Commands do
   """
 
   alias OpenDevCoach.CLI.TaskCommands
+  alias OpenDevCoach.CLI.ConfigCommands
 
   @doc """
   Returns the map of available commands for the REPL.
@@ -16,7 +17,8 @@ defmodule OpenDevCoach.CLI.Commands do
       "/help" => {__MODULE__, :help, []},
       "/quit" => {__MODULE__, :quit, []},
       "/task" => {TaskCommands, :dispatch, []},
-      "/catchall_handler" => {__MODULE__, :handle_unknown, []}
+      "/config" => {ConfigCommands, :dispatch, []},
+      "catchall_handler" => {__MODULE__, :handle_unknown, []}
     }
   end
 
@@ -38,6 +40,12 @@ defmodule OpenDevCoach.CLI.Commands do
       /task complete <number>     - Mark a task as completed
       /task remove <number>       - Remove a task
       /task backup                - Create backup of all tasks
+
+    Configuration:
+      /config set <key> <value>   - Set a configuration value
+      /config get <key>           - Get a configuration value
+      /config list                - List all configurations
+      /config reset               - Reset all configurations
 
     Any other input will be sent to your AI coach for assistance.
     """

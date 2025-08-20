@@ -3,9 +3,12 @@ defmodule OpenDevCoach.CLI.CommandsTest do
 
   test "commands/0 returns expected command map" do
     commands = OpenDevCoach.CLI.Commands.commands()
-    assert Map.has_key?(commands, "help")
-    assert Map.has_key?(commands, "quit")
-    assert length(Map.keys(commands)) == 2
+    assert Map.has_key?(commands, "/help")
+    assert Map.has_key?(commands, "/quit")
+    assert Map.has_key?(commands, "/task")
+    assert Map.has_key?(commands, "/config")
+    assert Map.has_key?(commands, "catchall_handler")
+    assert length(Map.keys(commands)) == 5
   end
 
   test "help/1 displays help information" do
