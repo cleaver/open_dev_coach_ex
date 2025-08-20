@@ -46,6 +46,7 @@ defmodule OpenDevCoach.CLI.Commands do
       /config get <key>           - Get a configuration value
       /config list                - List all configurations
       /config reset               - Reset all configurations
+      /config keys                - Show valid configuration keys
 
     Any other input will be sent to your AI coach for assistance.
     """

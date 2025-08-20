@@ -17,7 +17,8 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
       ["get", key] -> get_config(key)
       ["list"] -> list_configs()
       ["reset"] -> reset_config()
-      _ -> {:error, "Usage: /config <set|get|list|reset> [key] [value]"}
+      ["keys"] -> show_valid_keys()
+      _ -> {:error, "Usage: /config <set|get|list|reset|keys> [key] [value]"}
     end
   end
 
@@ -59,5 +60,21 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
       {:ok, message} -> {:ok, message}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @doc """
+  Shows the list of valid configuration keys.
+  """
+  def show_valid_keys do
+    keys = OpenDevCoach.Configuration.Config.valid_keys()
+
+    message = """
+    Valid Configuration Keys:
+    #{keys |> Enum.map(&"  • #{&1}") |> Enum.join("\n")}
+
+    Use `/config set <key> <value>` to set a configuration.
+    """
+
+    {:ok, message}
   end
 end

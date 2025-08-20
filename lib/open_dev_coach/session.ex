@@ -178,8 +178,9 @@ defmodule OpenDevCoach.Session do
         message = "Configuration '#{key}' set to '#{value}'"
         {:reply, {:ok, message}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, "Failed to set configuration: #{reason}"}, state}
+      {:error, changeset} ->
+        error_message = format_changeset_errors(changeset)
+        {:reply, {:error, error_message}, state}
     end
   end
 
@@ -278,5 +279,17 @@ defmodule OpenDevCoach.Session do
         |> Enum.join("\n")
         |> then(&"Configuration Settings:\n#{&1}")
     end
+  end
+
+  defp format_changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Enum.map(fn {field, errors} ->
+      "#{field}: #{Enum.join(errors, ", ")}"
+    end)
+    |> Enum.join("; ")
   end
 end
