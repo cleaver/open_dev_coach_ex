@@ -2,7 +2,7 @@
 
 This file breaks down the implementation plan into a series of pull requests with actionable tasks for a single developer, updated to reflect the correct `tio_comodo` integration.
 
-## Pull Request 1: Core Application Setup & Database Integration
+## [PR-1] Pull Request 1: Core Application Setup & Database Integration
 
 **Goal:** Establish the project's foundation with database connectivity and basic application structure.
 
@@ -23,7 +23,7 @@ This file breaks down the implementation plan into a series of pull requests wit
 - [x] **Application Supervision:**
     - [x] Add `OpenDevCoach.Repo` to the supervision tree in `lib/open_dev_coach/application.ex`.
 
-## Pull Request 2: Interactive REPL Setup
+## [PR-2] Pull Request 2: Interactive REPL Setup
 
 **Goal:** Make the application interactive by correctly setting up `tio_comodo` and its command handler.
 
@@ -41,7 +41,7 @@ This file breaks down the implementation plan into a series of pull requests wit
     - [x] In `lib/open_dev_coach/application.ex`, add `TioComodo.Repl.Server` to the supervision tree.
     - [x] Add the `spawn_link` process for listening to `:repl_terminated` to ensure clean shutdown, as shown in the `tio_comodo` documentation.
 
-## Pull Request 3: Task Management Feature
+## [PR-3] Pull Request 3: Task Management Feature
 
 **Goal:** Implement the full suite of task management commands.
 
@@ -56,7 +56,7 @@ This file breaks down the implementation plan into a series of pull requests wit
 - [x] **Backup Feature:**
     - [x] Implement the `/task backup` command in `CLI.Commands` and the backing logic in the `Session` GenServer.
 
-## Pull Request 4: Configuration Management Feature
+## [PR-4] Pull Request 4: Configuration Management Feature
 
 **Goal:** Allow users to configure the application, especially for AI settings.
 
@@ -70,7 +70,7 @@ This file breaks down the implementation plan into a series of pull requests wit
 - [ ] **Gitignore:**
     - [ ] Ensure the SQLite database file is added to `.gitignore`.
 
-## Pull Request 5: AI Provider Abstraction & Integration
+## [PR-5] Pull Request 5: AI Provider Abstraction & Integration
 
 **Goal:** Create a flexible architecture for supporting multiple AI providers and integrate it into the REPL.
 
@@ -86,7 +86,7 @@ This file breaks down the implementation plan into a series of pull requests wit
     - [ ] Implement the AI chat logic in the `Session` GenServer, which will call the `AI` module and manage `agent_history`.
     - [ ] Implement the `/config test` command.
 
-## Pull Request 6: Scheduler & Check-in Management
+## [PR-6] Pull Request 6: Scheduler & Check-in Management
 
 **Goal:** Add proactive check-ins by implementing a scheduler and the `/checkin` commands.
 
@@ -100,7 +100,7 @@ This file breaks down the implementation plan into a series of pull requests wit
 - [ ] **Check-in Handling:**
     - [ ] Implement the `handle_info(:checkin, state)` callback in the `Session` GenServer to gather context, call the AI, and display the result.
 
-## Pull Request 7: Desktop Notifications & Final Polish
+## [PR-7] Pull Request 7: Desktop Notifications & Final Polish
 
 **Goal:** Add desktop notifications for check-ins and improve the overall user experience.
 
@@ -118,3 +118,11 @@ This file breaks down the implementation plan into a series of pull requests wit
     - [ ] Write ExUnit tests for key modules.
     - [ ] Update the `README.md` with full setup and usage instructions.
     - [ ] Add `@moduledoc` and `@doc` annotations.
+
+## Additional Todos
+
+### [ADD-1] Archive Tasks
+- [ ] Add a task archive status.
+- [ ] Ensure archived tasks are not normally displayed.
+- [ ] Add new command `/task list archived` to show the archived tasks.
+- [ ] Add new command `/task purge` to permanently delete the archived tasks.
