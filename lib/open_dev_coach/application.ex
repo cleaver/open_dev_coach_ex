@@ -7,11 +7,21 @@ defmodule OpenDevCoach.Application do
 
   @impl true
   def start(_type, _args) do
+    # This process waits for the REPL to terminate, then stops the entire VM.
+    parent =
+      spawn_link(fn ->
+        receive do
+          :repl_terminated -> :init.stop()
+        end
+      end)
+
     children = [
       # Start the Ecto repository
-      OpenDevCoach.Repo
-      # Starts a worker by calling: OpenDevCoach.Worker.start_link(arg)
-      # {OpenDevCoach.Worker, arg}
+      OpenDevCoach.Repo,
+      # Start the main session GenServer
+      OpenDevCoach.Session,
+      # Start the TioComodo REPL server
+      {TioComodo.Repl.Server, prompt: "opendevcoach> ", name: OpenDevCoach.Repl, parent: parent}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
