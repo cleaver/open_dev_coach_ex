@@ -1,6 +1,6 @@
 # OpenDevCoach Task List
 
-This file breaks down the implementation plan into a series of pull requests with actionable tasks for a single developer.
+This file breaks down the implementation plan into a series of pull requests with actionable tasks for a single developer, updated to reflect the correct `tio_comodo` integration.
 
 ## Pull Request 1: Core Application Setup & Database Integration
 
@@ -23,22 +23,23 @@ This file breaks down the implementation plan into a series of pull requests wit
 - [x] **Application Supervision:**
     - [x] Add `OpenDevCoach.Repo` to the supervision tree in `lib/open_dev_coach/application.ex`.
 
-## Pull Request 2: Basic REPL and Command Parsing
+## Pull Request 2: Interactive REPL Setup
 
-**Goal:** Make the application interactive with a basic Read-Eval-Print Loop (REPL) and command handling.
+**Goal:** Make the application interactive by correctly setting up `tio_comodo` and its command handler.
 
 - [ ] **Session GenServer:**
-    - [ ] Create the main `OpenDevCoach.Session` GenServer.
+    - [ ] Create the main `OpenDevCoach.Session` GenServer for state management.
     - [ ] Add the `Session` GenServer to the supervision tree.
-- [ ] **Terminal Integration:**
-    - [ ] Integrate `TioComodo` into the `Session` GenServer to handle user input and output.
-    - [ ] Implement a basic REPL loop within the `Session` GenServer.
-- [ ] **Command Parser:**
-    - [ ] Create the `OpenDevCoach.CommandParser` module.
-    - [ ] Implement the `parse/1` function to handle basic command structures.
-- [ ] **Initial Commands:**
-    - [ ] Implement the `/help` command to display a static list of available commands.
-    - [ ] Implement the `/quit` and `/exit` commands to gracefully terminate the application.
+- [ ] **CLI Command Handler:**
+    - [ ] Create the `OpenDevCoach.CLI.Commands` module.
+    - [ ] Implement a `commands/0` function that returns a map for `/help` and `/quit`.
+    - [ ] Implement the `hello/1` and `quit/1` functions.
+    - [ ] Implement a `handle_unknown/1` catchall function that echoes the input for now.
+- [ ] **TioComodo Configuration:**
+    - [ ] In `config/config.exs`, configure `tio_comodo` to use `OpenDevCoach.CLI.Commands` as the `simple_provider` and `catchall_handler`.
+- [ ] **Supervisor Integration:**
+    - [ ] In `lib/open_dev_coach/application.ex`, add `TioComodo.Repl.Server` to the supervision tree.
+    - [ ] Add the `spawn_link` process for listening to `:repl_terminated` to ensure clean shutdown, as shown in the `tio_comodo` documentation.
 
 ## Pull Request 3: Task Management Feature
 
@@ -46,19 +47,14 @@ This file breaks down the implementation plan into a series of pull requests wit
 
 - [ ] **Ecto Context:**
     - [ ] Create the `OpenDevCoach.Tasks` context module.
-    - [ ] Implement `list_tasks/0`.
-    - [ ] Implement `add_task/1`.
-    - [ ] Implement `get_task/1`.
-    - [ ] Implement `update_task_status/2`.
-    - [ ] Implement `remove_task/1`.
+    - [ ] Implement `list_tasks/0`, `add_task/1`, `get_task/1`, `update_task_status/2`, and `remove_task/1`.
+- [ ] **Session Logic:**
+    - [ ] Implement corresponding functions in the `OpenDevCoach.Session` GenServer that call the `Tasks` context.
 - [ ] **Command Integration:**
-    - [ ] Integrate `Tasks.add_task/1` with the `/task add` command in the `Session` GenServer.
-    - [ ] Integrate `Tasks.list_tasks/0` with the `/task list` command.
-    - [ ] Implement the logic for `/task start` to mark a task as `IN-PROGRESS` and others as `ON-HOLD`.
-    - [ ] Integrate `Tasks.update_task_status/2` for the `/task complete` command.
-    - [ ] Integrate `Tasks.remove_task/1` with the `/task remove` command.
+    - [ ] In `OpenDevCoach.CLI.Commands`, implement the functions for `/task add`, `/task list`, `/task start`, `/task complete`, and `/task remove`.
+    - [ ] These functions will parse arguments and call the `Session` GenServer to execute the logic.
 - [ ] **Backup Feature:**
-    - [ ] Implement the `/task backup` command to write tasks to a Markdown file.
+    - [ ] Implement the `/task backup` command in `CLI.Commands` and the backing logic in the `Session` GenServer.
 
 ## Pull Request 4: Configuration Management Feature
 
@@ -67,10 +63,12 @@ This file breaks down the implementation plan into a series of pull requests wit
 - [ ] **Ecto Context:**
     - [ ] Create the `OpenDevCoach.Configuration` context module.
     - [ ] Implement `get_config/1`, `set_config/2`, `list_configs/0`, and `reset_config/0`.
+- [ ] **Session Logic:**
+    - [ ] Add functions to the `Session` GenServer to handle configuration logic by calling the `Configuration` context.
 - [ ] **Command Integration:**
-    - [ ] Integrate the context functions with the corresponding `/config` subcommands (`set`, `get`, `list`, `reset`) in the `Session` GenServer.
+    - [ ] Implement the `/config` subcommands (`set`, `get`, `list`, `reset`) in `CLI.Commands`, delegating to the `Session` GenServer.
 - [ ] **Gitignore:**
-    - [ ] Ensure the SQLite database file is added to `.gitignore` to protect sensitive configurations like API keys.
+    - [ ] Ensure the SQLite database file is added to `.gitignore`.
 
 ## Pull Request 5: AI Provider Abstraction & Integration
 
@@ -78,19 +76,14 @@ This file breaks down the implementation plan into a series of pull requests wit
 
 - [ ] **AI Provider Behaviour:**
     - [ ] Define the `OpenDevCoach.AI.Provider` behaviour with a `chat/2` function specification.
-- [ ] **AI Factory Module:**
-    - [ ] Create the `OpenDevCoach.AI` factory module.
-    - [ ] Implement a function that reads the `ai_provider` from config and calls the correct provider module.
 - [ ] **Provider Implementations:**
-    - [ ] Add `req` and `jason` to `mix.exs` and run `mix deps.get`.
-    - [ ] Create the directory `lib/open_dev_coach/ai/providers/`.
-    - [ ] Implement the `OpenDevCoach.AI.Providers.Gemini` module, conforming to the `Provider` behaviour.
-    - [ ] Implement the `OpenDevCoach.AI.Providers.OpenAI` module.
-    - [ ] Implement the `OpenDevCoach.AI.Providers.Anthropic` module.
-    - [ ] Implement the `OpenDevCoach.AI.Providers.Ollama` module.
+    - [ ] Add `req` and `jason` to `mix.exs`.
+    - [ ] Create and implement the provider modules: `Gemini`, `OpenAI`, `Anthropic`, and `Ollama`.
+- [ ] **AI Factory:**
+    - [ ] Create the `OpenDevCoach.AI` factory module to delegate to the correct provider based on config.
 - [ ] **REPL Integration:**
-    - [ ] In the `Session` GenServer, handle non-command input by sending it to `OpenDevCoach.AI.chat/2`.
-    - [ ] Store the conversation history in the `agent_history` table.
+    - [ ] Modify the `handle_unknown/1` function in `CLI.Commands` to pass input to the `Session` GenServer.
+    - [ ] Implement the AI chat logic in the `Session` GenServer, which will call the `AI` module and manage `agent_history`.
     - [ ] Implement the `/config test` command.
 
 ## Pull Request 6: Scheduler & Check-in Management
@@ -98,35 +91,30 @@ This file breaks down the implementation plan into a series of pull requests wit
 **Goal:** Add proactive check-ins by implementing a scheduler and the `/checkin` commands.
 
 - [ ] **Scheduler GenServer:**
-    - [ ] Create the `OpenDevCoach.Scheduler` GenServer.
+    - [ ] Create and implement the `OpenDevCoach.Scheduler` GenServer.
     - [ ] Add the `Scheduler` to the supervision tree.
 - [ ] **Scheduling Logic:**
-    - [ ] Implement logic within the `Scheduler` to use `Process.send_after/3` to trigger check-ins.
-    - [ ] The `Scheduler` should send a `:checkin` message to the `Session` process.
+    - [ ] The `Scheduler` should use `Process.send_after/3` to send a `:checkin` message to the `Session` process.
 - [ ] **Command Integration:**
-    - [ ] Implement the `/checkin add` command, including parsing for `HH:MM` and interval formats.
-    - [ ] Implement the `/checkin list`, `/checkin remove`, and `/checkin status` commands.
+    - [ ] Implement the `/checkin` commands in `CLI.Commands`. These will call the `Scheduler` GenServer to manage check-in times.
 - [ ] **Check-in Handling:**
-    - [ ] Implement the `handle_info(:checkin, state)` callback in the `Session` GenServer.
-    - [ ] In the callback, gather context (tasks, history) and send it to the AI.
-    - [ ] Display the AI's response in the terminal.
+    - [ ] Implement the `handle_info(:checkin, state)` callback in the `Session` GenServer to gather context, call the AI, and display the result.
 
 ## Pull Request 7: Desktop Notifications & Final Polish
 
 **Goal:** Add desktop notifications for check-ins and improve the overall user experience.
 
 - [ ] **Notifier Module:**
-    - [ ] Create the `OpenDevCoach.Notifier` module.
-    - [ ] Implement a `notify/2` function that detects the OS.
-    - [ ] Use `System.cmd/3` to call `notify-send` on Linux and `terminal-notifier` on macOS.
+    - [ ] Create the `OpenDevCoach.Notifier` module with a `notify/2` function that calls the appropriate OS-specific command-line tool.
 - [ ] **Integration:**
     - [ ] Call `Notifier.notify/2` from the `Session`'s `:checkin` handler.
 - [ ] **UI/UX Enhancements:**
-    - [ ] Use `TioComodo` features to add color and better formatting to output.
-    - [ ] Add a spinner or loading message for AI calls.
+    - [ ] Configure the `tio_comodo` colorscheme in `config/config.exs`.
+    - [ ] Use `Owl` within the `CLI.Commands` module to add color and formatting to command output.
+    - [ ] Add a loading message before long-running calls (e.g., to the AI).
 - [ ] **Prompt Engineering:**
-    - [ ] Develop and refine the system prompt for check-ins to guide the AI to be a helpful coach.
+    - [ ] Refine the system prompt used in the `Session` GenServer for check-ins.
 - [ ] **Testing & Documentation:**
-    - [ ] Write ExUnit tests for key modules (`CommandParser`, Ecto contexts).
+    - [ ] Write ExUnit tests for key modules.
     - [ ] Update the `README.md` with full setup and usage instructions.
-    - [ ] Add `@moduledoc` and `@doc` annotations to the code.
+    - [ ] Add `@moduledoc` and `@doc` annotations.
