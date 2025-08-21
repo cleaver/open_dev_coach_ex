@@ -32,7 +32,7 @@ jobs:
         otp-version: ${{matrix.otp}}
 
     - name: Check out code
-    - uses: actions/checkout@v4
+      uses: actions/checkout@v4
 
     - name: Restore dependencies cache
       uses: actions/cache@v3
