@@ -1,7 +1,14 @@
 defmodule OpenDevCoach.AITest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   alias OpenDevCoach.AI
   alias OpenDevCoach.AI.Providers.Gemini
+  alias OpenDevCoach.Configuration
+
+  setup do
+    # Clean up any existing configuration before each test
+    Configuration.reset_config()
+    :ok
+  end
 
   describe "AI Provider Behaviour" do
     test "gemini_provider_implements_behaviour" do
@@ -13,10 +20,10 @@ defmodule OpenDevCoach.AITest do
   describe "AI Factory" do
     test "get_configured_provider_returns_nil_when_not_configured" do
       # This test assumes no provider is configured in the test environment
-      # In a real test environment, you'd mock the Configuration module
+      # The function should return nil when no provider is configured
       provider = AI.get_configured_provider()
-      # Could be nil or whatever is configured in test env
-      assert is_atom(provider) or is_nil(provider)
+      # Should be nil when no provider is configured
+      assert provider == nil
     end
 
     test "chat_returns_error_when_no_provider_configured" do
