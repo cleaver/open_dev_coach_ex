@@ -50,5 +50,18 @@ jobs:
     - name: Check Formatting
       run: mix format --check-formatted
 
+    - name: Drop database
+      run: mix ecto.drop
+      env:
+        MIX_ENV: test
+
+    - name: Create database
+      run: mix ecto.create
+
+    - name: Run migrations
+      run: mix ecto.migrate
+      env:
+        MIX_ENV: test
+
     - name: Run tests
       run: mix test
