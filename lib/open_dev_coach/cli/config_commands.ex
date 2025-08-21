@@ -18,7 +18,8 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
       ["list"] -> list_configs()
       ["reset"] -> reset_config()
       ["keys"] -> show_valid_keys()
-      _ -> {:error, "Usage: /config <set|get|list|reset|keys> [key] [value]"}
+      ["test"] -> test_config()
+      _ -> {:error, "Usage: /config <set|get|list|reset|keys|test> [key] [value]"}
     end
   end
 
@@ -76,5 +77,15 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
     """
 
     {:ok, message}
+  end
+
+  @doc """
+  Tests the current AI configuration by sending a simple message.
+  """
+  def test_config do
+    case Session.test_ai_config() do
+      {:ok, message} -> {:ok, message}
+      {:error, reason} -> {:error, reason}
+    end
   end
 end

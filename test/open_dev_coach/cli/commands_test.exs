@@ -51,18 +51,20 @@ defmodule OpenDevCoach.CLI.CommandsTest do
     assert String.length(message) > 0
   end
 
-  test "handle_unknown/1 echoes input back" do
+  test "handle_unknown/1 routes to AI coach" do
     test_input = "Hello, AI coach!"
-    {:ok, response} = OpenDevCoach.CLI.Commands.handle_unknown(test_input)
-    assert String.contains?(response, test_input)
-    assert String.contains?(response, "AI coach")
+    result = OpenDevCoach.CLI.Commands.handle_unknown(test_input)
+    # Should return an error since no AI provider is configured
+    assert {:error, _} = result
+    assert String.contains?(elem(result, 1), "AI service error")
   end
 
   test "handle_unknown/1 returns expected tuple structure" do
     result = OpenDevCoach.CLI.Commands.handle_unknown("test input")
     assert is_tuple(result)
     assert tuple_size(result) == 2
-    assert elem(result, 0) == :ok
+    # Should return error since no AI provider is configured
+    assert elem(result, 0) == :error
     assert is_binary(elem(result, 1))
   end
 end

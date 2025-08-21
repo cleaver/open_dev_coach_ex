@@ -47,8 +47,16 @@ defmodule OpenDevCoach.CLI.Commands do
       /config list                - List all configurations
       /config reset               - Reset all configurations
       /config keys                - Show valid configuration keys
+      /config test                - Test your AI configuration
 
-    Any other input will be sent to your AI coach for assistance.
+    AI Coaching:
+      Any other input will be sent to your AI coach for assistance.
+      The AI will have access to your task list and conversation history.
+
+    Configuration Keys:
+      • ai_provider  - AI service to use (gemini, openai, anthropic, ollama)
+      • ai_model     - Model name for the provider
+      • ai_api_key   - API key for external AI services
     """
 
     {:ok, help_text}
@@ -64,10 +72,15 @@ defmodule OpenDevCoach.CLI.Commands do
   @doc """
   Handles any input that doesn't match a defined command.
 
-  For now, this echoes back the input. In future PRs, this will
-  route to the AI system for coaching and assistance.
+  This function routes user input to the AI coach for assistance.
   """
   def handle_unknown(input) do
-    {:ok, "You said: #{input}\n\nThis will be sent to your AI coach in future updates!"}
+    case OpenDevCoach.Session.chat_with_ai(input) do
+      {:ok, response} ->
+        {:ok, response}
+
+      {:error, reason} ->
+        {:error, "AI service error: #{reason}"}
+    end
   end
 end
