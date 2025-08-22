@@ -127,3 +127,7 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 - [ ] Ensure archived tasks are not normally displayed.
 - [ ] Add new command `/task list archived` to show the archived tasks.
 - [ ] Add new command `/task purge` to permanently delete the archived tasks.
+
+### [ADD-2] Tool calls
+- [ ] Ensure our behaviour describes tool calls.
+    - [ ] Maybe typespec for data sent to backend.

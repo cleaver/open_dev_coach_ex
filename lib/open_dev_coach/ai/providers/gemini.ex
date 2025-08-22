@@ -10,6 +10,7 @@ defmodule OpenDevCoach.AI.Providers.Gemini do
   require Logger
 
   @gemini_base_url "https://generativelanguage.googleapis.com/v1beta/models"
+  @default_model "gemini-flash-2.5"
 
   @doc """
   Sends a chat message to Gemini AI and returns the response.
@@ -25,7 +26,7 @@ defmodule OpenDevCoach.AI.Providers.Gemini do
   """
   def chat(messages, opts, http_client \\ Req) do
     api_key = Keyword.get(opts, :api_key)
-    model = Keyword.get(opts, :model, "gemini-pro")
+    model = Keyword.get(opts, :model, @default_model)
 
     case validate_request(api_key, messages) do
       :ok ->
