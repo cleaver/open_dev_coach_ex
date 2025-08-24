@@ -1,5 +1,5 @@
-defmodule OpenDevCoach.IntegrationTest do
-  use ExUnit.Case, async: false
+defmodule OpenDevCoach.AI.IntegrationTest do
+  use OpenDevCoach.DataCase, async: false
   alias OpenDevCoach.Session
   alias OpenDevCoach.Configuration
   alias OpenDevCoach.CLI.Commands

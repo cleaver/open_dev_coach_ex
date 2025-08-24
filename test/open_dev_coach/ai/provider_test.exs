@@ -1,5 +1,5 @@
-defmodule OpenDevCoach.AITest do
-  use ExUnit.Case, async: false
+defmodule OpenDevCoach.AI.ProviderTest do
+  use OpenDevCoach.DataCase, async: false
   alias OpenDevCoach.AI
   alias OpenDevCoach.AI.Providers.Gemini
   alias OpenDevCoach.Configuration

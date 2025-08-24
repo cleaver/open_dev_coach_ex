@@ -1,5 +1,5 @@
 defmodule OpenDevCoach.CLI.CommandsTest do
-  use ExUnit.Case, async: true
+  use OpenDevCoach.DataCase, async: false
 
   test "commands/0 returns expected command map" do
     commands = OpenDevCoach.CLI.Commands.commands()

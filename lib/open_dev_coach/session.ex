@@ -275,11 +275,16 @@ defmodule OpenDevCoach.Session do
 
   defp get_status_emoji(status) do
     case status do
-      "PENDING" -> "⏳"
-      "IN-PROGRESS" -> "🔄"
-      "ON-HOLD" -> "⏸️"
-      "COMPLETED" -> "✅"
-      _ -> "❓"
+      # Yellow circle
+      "PENDING" -> "\e[33m●\e[0m"
+      # Blue circle
+      "IN-PROGRESS" -> "\e[34m●\e[0m"
+      # Magenta circle
+      "ON-HOLD" -> "\e[35m●\e[0m"
+      # Green circle
+      "COMPLETED" -> "\e[32m●\e[0m"
+      # White circle
+      _ -> "\e[37m●\e[0m"
     end
   end
 
