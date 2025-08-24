@@ -75,17 +75,17 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 **Goal:** Create a flexible architecture for supporting multiple AI providers and integrate it into the REPL.
 
-- [ ] **AI Provider Behaviour:**
-    - [ ] Define the `OpenDevCoach.AI.Provider` behaviour with a `chat/2` function specification.
-- [ ] **Provider Implementations:**
-    - [ ] Add `req` and `jason` to `mix.exs`.
-    - [ ] Create and implement the provider modules: `Gemini`, `OpenAI`, `Anthropic`, and `Ollama`.
-- [ ] **AI Factory:**
-    - [ ] Create the `OpenDevCoach.AI` factory module to delegate to the correct provider based on config.
-- [ ] **REPL Integration:**
-    - [ ] Modify the `handle_unknown/1` function in `CLI.Commands` to pass input to the `Session` GenServer.
-    - [ ] Implement the AI chat logic in the `Session` GenServer, which will call the `AI` module and manage `agent_history`.
-    - [ ] Implement the `/config test` command.
+- [x] **AI Provider Behaviour:**
+    - [x] Define the `OpenDevCoach.AI.Provider` behaviour with a `chat/2` function specification.
+- [x] **Provider Implementations:**
+    - [x] Add `req` and `jason` to `mix.exs`.
+    - [x] Create and implement the provider modules: `Gemini`, `OpenAI`, `Anthropic`, and `Ollama`.
+- [x] **AI Factory:**
+    - [x] Create the `OpenDevCoach.AI` factory module to delegate to the correct provider based on config.
+- [x] **REPL Integration:**
+    - [x] Modify the `handle_unknown/1` function in `CLI.Commands` to pass input to the `Session` GenServer.
+    - [x] Implement the AI chat logic in the `Session` GenServer, which will call the `AI` module and manage `agent_history`.
+    - [x] Implement the `/config test` command.
 
 ## [PR-6] Pull Request 6: Scheduler & Check-in Management
 
