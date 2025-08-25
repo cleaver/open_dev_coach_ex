@@ -8,6 +8,7 @@ defmodule OpenDevCoach.CLI.Commands do
 
   alias OpenDevCoach.CLI.TaskCommands
   alias OpenDevCoach.CLI.ConfigCommands
+  alias OpenDevCoach.CLI.CheckinCommands
 
   @doc """
   Returns the map of available commands for the REPL.
@@ -18,6 +19,7 @@ defmodule OpenDevCoach.CLI.Commands do
       "/quit" => {__MODULE__, :quit, []},
       "/task" => {TaskCommands, :dispatch, []},
       "/config" => {ConfigCommands, :dispatch, []},
+      "/checkin" => {CheckinCommands, :dispatch, []},
       "catchall_handler" => {__MODULE__, :handle_unknown, []}
     }
   end
@@ -40,6 +42,12 @@ defmodule OpenDevCoach.CLI.Commands do
       /task complete <number>     - Mark a task as completed
       /task remove <number>       - Remove a task
       /task backup                - Create backup of all tasks
+
+    Check-in Management:
+      /checkin add <time>         - Schedule a check-in (e.g., '09:30' or '2h 30m')
+      /checkin list               - List all scheduled check-ins
+      /checkin remove <id>        - Remove a scheduled check-in
+      /checkin status             - Show status of all check-ins
 
     Configuration:
       /config set <key> <value>   - Set a configuration value

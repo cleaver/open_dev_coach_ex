@@ -20,6 +20,16 @@ defmodule OpenDevCoach.Session do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @doc """
+  Handles a check-in trigger from the scheduler.
+
+  This function is called when a scheduled check-in time is reached.
+  It will gather context and call the AI system for a coaching response.
+  """
+  def handle_checkin(checkin) do
+    GenServer.cast(__MODULE__, {:handle_checkin, checkin})
+  end
+
   @impl true
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
@@ -254,6 +264,30 @@ defmodule OpenDevCoach.Session do
     {:reply, {:ok, "Not implemented yet"}, state}
   end
 
+  @impl true
+  def handle_cast({:handle_checkin, checkin}, state) do
+    Logger.info("Processing check-in: #{checkin.id}")
+
+    # For now, just log the check-in
+    # In future PRs, this will gather context and call the AI
+    message = """
+    🔔 Check-in Time!
+
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+    This is where the AI coach will provide insights and encouragement.
+    (AI integration coming in future updates!)
+    """
+
+    # Display the message via the REPL
+    # Note: In a real implementation, you'd want to send this to the user
+    # For now, we'll just log it
+    Logger.info(message)
+
+    {:noreply, state}
+  end
+
   # Private Functions
 
   defp format_task_list(tasks) do
@@ -383,5 +417,12 @@ defmodule OpenDevCoach.Session do
 
     Be encouraging, practical, and helpful. Keep responses concise but supportive.
     """
+  end
+
+  defp format_datetime(datetime) do
+    datetime
+    |> DateTime.to_string()
+    # Format as "YYYY-MM-DD HH:MM:SS"
+    |> String.slice(0, 19)
   end
 end

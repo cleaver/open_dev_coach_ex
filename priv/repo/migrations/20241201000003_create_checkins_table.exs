@@ -4,7 +4,10 @@ defmodule OpenDevCoach.Repo.Migrations.CreateCheckinsTable do
   def change do
     create table(:checkins) do
       add :scheduled_at, :utc_datetime, null: false
-      add :status, :string, default: "PENDING", null: false
+      add :status, :string, default: "SCHEDULED", null: false
+      add :description, :string
+      add :last_triggered_at, :utc_datetime
+      add :completed_at, :utc_datetime
 
       timestamps()
     end
