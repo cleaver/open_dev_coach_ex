@@ -136,3 +136,9 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 - [ ] Handle quotes for tasks
 - [ ] Handle quotes for config
 - [ ] Obfuscate ai key
+
+### [ADD-4] Recurring checkins
+- [ ] Add command like `/checkin add repeat 9:30 Morning checkin`.
+
+### Bugs
+- [ ] Order of tasks doesn't match up correctly.
