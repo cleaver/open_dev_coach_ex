@@ -1,6 +1,16 @@
 # OpenDevCoach
 
-**TODO: Add description**
+A terminal-based AI productivity coach to help you stay on task.
+
+## Architecture Overview
+
+The application's core logic is managed by two primary GenServers that follow the Single Responsibility Principle:
+
+*   `OpenDevCoach.Session`: This GenServer acts as the central orchestrator for application logic. It manages state for tasks, configuration, and handles all interactions with the AI provider. It answers the question "what happens."
+
+*   `OpenDevCoach.Scheduler`: This GenServer is responsible for all time-based events. It manages the lifecycle of scheduled check-ins, persisting them to the database and using `Process.send_after` to trigger them at the correct time. It answers the question "when things happen."
+
+When a scheduled check-in time arrives, the `Scheduler` sends a message to the `Session`, which then executes the check-in logic. This separation keeps the core application logic decoupled from the time-scheduling mechanism.
 
 ## Installation
 

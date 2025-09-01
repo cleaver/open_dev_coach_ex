@@ -9,6 +9,10 @@ config :open_dev_coach, OpenDevCoach.Repo,
 config :open_dev_coach,
   ecto_repos: [OpenDevCoach.Repo]
 
+# Configure timezone (default to America/New_York, can be overridden in environment configs)
+config :open_dev_coach,
+  timezone: "America/New_York"
+
 # Configure TioComodo REPL
 config :tio_comodo,
   simple_provider: {OpenDevCoach.CLI.Commands, :commands}

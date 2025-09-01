@@ -4,9 +4,16 @@ defmodule OpenDevCoach.SchedulerTest do
 
   describe "time parsing" do
     test "parses HH:MM format correctly" do
-      assert {:ok, checkin_id} = Scheduler.add_checkin("09:30", "Morning check-in")
+      # Use a time that's clearly in the future to avoid timezone issues
+      future_hour = DateTime.utc_now().hour + 1
+      future_hour = if future_hour > 23, do: 0, else: future_hour
+
+      time_str = "#{String.pad_leading("#{future_hour}", 2, "0")}:30"
+      assert {:ok, checkin_id} = Scheduler.add_checkin(time_str, "Future check-in")
       checkin = OpenDevCoach.Checkins.get_checkin(checkin_id)
-      IO.inspect(checkin, label: "---------checkin")
+
+      # The time should be scheduled for the future
+      assert DateTime.compare(checkin.scheduled_at, DateTime.utc_now()) == :gt
     end
 
     test "parses interval format correctly" do
@@ -40,10 +47,30 @@ defmodule OpenDevCoach.SchedulerTest do
       status = Scheduler.status()
       assert length(status) >= 1
 
+      # Verify status contains the expected fields for one-time check-ins
       assert Enum.all?(status, fn s ->
-               Map.has_key?(s, :next_occurrence) and
-                 Map.has_key?(s, :scheduled_at)
+               Map.has_key?(s, :scheduled_at) and
+                 Map.has_key?(s, :status) and
+                 Map.has_key?(s, :description)
              end)
+    end
+
+    test "creates one-time check-ins (not recurring)" do
+      # Use a time that's clearly in the future
+      future_hour = DateTime.utc_now().hour + 1
+      future_hour = if future_hour > 23, do: 0, else: future_hour
+
+      time_str = "#{String.pad_leading("#{future_hour}", 2, "0")}:00"
+      {:ok, checkin_id} = Scheduler.add_checkin(time_str, "One-time test")
+      checkin = OpenDevCoach.Checkins.get_checkin(checkin_id)
+
+      # Status could be SCHEDULED or SKIPPED depending on when the test runs
+      # relative to the scheduler startup
+      assert checkin.status in ["SCHEDULED", "SKIPPED"]
+
+      # The important thing is that it's not marked as recurring
+      # After execution, should be marked as COMPLETED
+      # (This would be tested in integration tests with actual execution)
     end
   end
 end

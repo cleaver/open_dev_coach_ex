@@ -268,22 +268,64 @@ defmodule OpenDevCoach.Session do
   def handle_cast({:handle_checkin, checkin}, state) do
     Logger.info("Processing check-in: #{checkin.id}")
 
-    # For now, just log the check-in
-    # In future PRs, this will gather context and call the AI
-    message = """
-    🔔 Check-in Time!
+    # Gather context for the AI
+    recent_history = AgentHistory.get_recent_history(5)
+    current_tasks = Tasks.list_tasks()
 
-    Scheduled for: #{format_datetime(checkin.scheduled_at)}
-    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+    # Build context for AI
+    context = build_ai_context(recent_history, current_tasks)
 
-    This is where the AI coach will provide insights and encouragement.
-    (AI integration coming in future updates!)
+    # Create a check-in specific prompt
+    checkin_prompt = """
+    It's check-in time! Here's what's happening:
+
+    #{if checkin.description, do: "Check-in: #{checkin.description}", else: "Regular check-in"}
+
+    Please provide encouragement, insights, and help the user stay productive.
+    Keep your response focused and actionable.
     """
 
-    # Display the message via the REPL
-    # Note: In a real implementation, you'd want to send this to the user
-    # For now, we'll just log it
-    Logger.info(message)
+    # Send to AI
+    case AI.chat([%{role: "user", content: checkin_prompt}], context: context) do
+      {:ok, ai_response} ->
+        # Store the check-in interaction in history
+        AgentHistory.add_conversation(
+          "system",
+          "Check-in triggered: #{if checkin.description, do: checkin.description, else: "Regular check-in"}"
+        )
+
+        AgentHistory.add_conversation("assistant", ai_response)
+
+        # Display the message via the REPL
+        message = """
+        🔔 Check-in Time!
+
+        Scheduled for: #{format_datetime(checkin.scheduled_at)}
+        #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+        🤖 AI Coach Response:
+        #{ai_response}
+        """
+
+        # Log the message (in a real implementation, this would be sent to the user)
+        Logger.info(message)
+
+      {:error, reason} ->
+        Logger.error("AI service error during check-in: #{reason}")
+
+        # Fallback message if AI fails
+        message = """
+        🔔 Check-in Time!
+
+        Scheduled for: #{format_datetime(checkin.scheduled_at)}
+        #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+        ⚠️ AI service temporarily unavailable.
+        This is a good time to review your tasks and progress!
+        """
+
+        Logger.info(message)
+    end
 
     {:noreply, state}
   end
@@ -420,7 +462,18 @@ defmodule OpenDevCoach.Session do
   end
 
   defp format_datetime(datetime) do
-    datetime
+    # Convert UTC to local timezone for display
+    local_time =
+      case datetime do
+        %DateTime{} ->
+          timezone = Application.get_env(:open_dev_coach, :timezone, "America/New_York")
+          DateTime.shift_zone!(datetime, timezone)
+
+        _ ->
+          datetime
+      end
+
+    local_time
     |> DateTime.to_string()
     # Format as "YYYY-MM-DD HH:MM:SS"
     |> String.slice(0, 19)

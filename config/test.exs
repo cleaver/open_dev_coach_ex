@@ -7,5 +7,4 @@ config :open_dev_coach, OpenDevCoach.Repo,
 config :open_dev_coach,
   ecto_repos: [OpenDevCoach.Repo]
 
-# Print only warnings and errors during test
 config :logger, level: :warning

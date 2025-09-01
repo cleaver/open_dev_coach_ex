@@ -23,6 +23,6 @@ defmodule OpenDevCoach.Checkins.Checkin do
     checkin
     |> cast(attrs, [:scheduled_at, :status, :description, :last_triggered_at, :completed_at])
     |> validate_required([:scheduled_at, :status])
-    |> validate_inclusion(:status, ["SCHEDULED", "TRIGGERED", "COMPLETED", "CANCELLED"])
+    |> validate_inclusion(:status, ["SCHEDULED", "SKIPPED", "COMPLETED", "CANCELLED"])
   end
 end
