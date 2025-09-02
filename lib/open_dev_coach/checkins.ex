@@ -50,11 +50,11 @@ defmodule OpenDevCoach.Checkins do
   end
 
   @doc """
-  Lists only active (non-completed) check-ins with times in local timezone.
+  Lists only active (scheduled) check-ins with times in local timezone.
   """
   def list_active_checkins do
     Checkin
-    |> where([c], c.status != "COMPLETED")
+    |> where([c], c.status == "SCHEDULED")
     |> order_by([c], c.scheduled_at)
     |> Repo.all()
     |> Enum.map(&convert_utc_to_local/1)
@@ -92,6 +92,10 @@ defmodule OpenDevCoach.Checkins do
     checkin
     |> Checkin.changeset(attrs)
     |> Repo.update()
+    |> case do
+      {:ok, checkin} -> {:ok, convert_utc_to_local(checkin)}
+      error -> error
+    end
   end
 
   @doc """
