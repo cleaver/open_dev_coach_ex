@@ -1,6 +1,7 @@
 defmodule OpenDevCoach.CLI.CommandsTest do
   use OpenDevCoach.DataCase, async: false
 
+  # TODO: Maybe not useful tests.
   describe "CLI Commands" do
     test "commands/0 returns expected command map" do
       commands = OpenDevCoach.CLI.Commands.commands()

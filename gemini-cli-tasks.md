@@ -91,15 +91,15 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 **Goal:** Add proactive check-ins by implementing a scheduler and the `/checkin` commands.
 
-- [ ] **Scheduler GenServer:**
-    - [ ] Create and implement the `OpenDevCoach.Scheduler` GenServer.
-    - [ ] Add the `Scheduler` to the supervision tree.
-- [ ] **Scheduling Logic:**
-    - [ ] The `Scheduler` should use `Process.send_after/3` to send a `:checkin` message to the `Session` process.
-- [ ] **Command Integration:**
-    - [ ] Implement the `/checkin` commands in `CLI.Commands`. These will call the `Scheduler` GenServer to manage check-in times.
-- [ ] **Check-in Handling:**
-    - [ ] Implement the `handle_info(:checkin, state)` callback in the `Session` GenServer to gather context, call the AI, and display the result.
+- [x] **Scheduler GenServer:**
+    - [x] Create and implement the `OpenDevCoach.Scheduler` GenServer.
+    - [x] Add the `Scheduler` to the supervision tree.
+- [x] **Scheduling Logic:**
+    - [x] The `Scheduler` should use `Process.send_after/3` to send a `:checkin` message to the `Session` process.
+- [x] **Command Integration:**
+    - [x] Implement the `/checkin` commands in `CLI.Commands`. These will call the `Scheduler` GenServer to manage check-in times.
+- [x] **Check-in Handling:**
+    - [x] Implement the `handle_info(:checkin, state)` callback in the `Session` GenServer to gather context, call the AI, and display the result.
 
 ## [PR-7] Pull Request 7: Desktop Notifications & Final Polish
 
