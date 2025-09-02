@@ -167,12 +167,12 @@ defmodule OpenDevCoach.Scheduler do
   end
 
   defp restore_checkins_from_database do
-    # Only restore SCHEDULED check-ins (not COMPLETED, SKIPPED, or CANCELLED)
-    checkins = Checkins.list_scheduled_checkins()
-    Enum.each(checkins, &schedule_checkin/1)
-    Logger.info("Restored #{length(checkins)} scheduled check-ins from database")
+    scheduled_checkins = Checkins.list_scheduled_checkins()
+    Enum.each(scheduled_checkins, &schedule_checkin/1)
+    Logger.info("Restored #{length(scheduled_checkins)} scheduled check-ins from database")
   end
 
+  # TODO: Make sure this is necessary
   defp schedule_checkin(checkin) do
     next_time = checkin.scheduled_at
     now = DateHelper.local_datetime_now()
@@ -192,7 +192,7 @@ defmodule OpenDevCoach.Scheduler do
   end
 
   defp cancel_checkin_timer(checkin_id) do
-    # Note: Process.send_after returns a timer reference, but we're not storing it
+    # TODO: Process.send_after returns a timer reference, but we're not storing it
     # In a production system, you'd want to store timer references to cancel them
     # For now, we'll rely on the process being restarted to clear old timers
     Logger.debug("Check-in #{checkin_id} timer cancelled")

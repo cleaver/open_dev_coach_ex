@@ -265,6 +265,7 @@ defmodule OpenDevCoach.Session do
   end
 
   @impl true
+  # TODO: Too long. Fix.
   def handle_cast({:handle_checkin, checkin}, state) do
     Logger.info("Processing check-in: #{checkin.id}")
 

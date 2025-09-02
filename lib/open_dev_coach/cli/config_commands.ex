@@ -118,28 +118,10 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   # Private functions
 
   defp validate_timezone(timezone) when is_binary(timezone) do
-    # Basic validation - check if it's a common timezone
-    valid_timezones = [
-      "America/New_York",
-      "America/Chicago",
-      "America/Denver",
-      "America/Los_Angeles",
-      "America/Toronto",
-      "America/Vancouver",
-      "Europe/London",
-      "Europe/Paris",
-      "Europe/Berlin",
-      "Asia/Tokyo",
-      "Asia/Shanghai",
-      "Australia/Sydney",
-      "Etc/UTC",
-      "Etc/GMT"
-    ]
-
-    if timezone in valid_timezones do
+    if timezone in Timex.timezones() do
       {:ok, timezone}
     else
-      {:error, "Unsupported timezone. Use one of: #{Enum.join(valid_timezones, ", ")}"}
+      {:error, "Unsupported timezone. Use one of: #{Enum.join(Timex.timezones(), ", ")}"}
     end
   end
 
