@@ -1,0 +1,8 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+The database layer handles dates as UTC only. Conversion from local time to UTC occurs in the context modules @lib/open_dev_coach/checkins.ex , etc. 
+
+THIS IS IMPORTANT: The rest of the app, handles dates as local time.

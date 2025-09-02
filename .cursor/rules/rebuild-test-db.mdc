@@ -1,0 +1,11 @@
+---
+description: When running tests, if getting database errors.
+alwaysApply: false
+---
+You can rebuild the test db like this:
+
+```bash
+MIX_ENV=test mix ecto.drop
+MIX_ENV=test mix ecto.create
+MIX_ENV=test mix ecto.migrate
+```

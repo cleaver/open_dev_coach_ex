@@ -16,11 +16,9 @@ defmodule OpenDevCoach.Application do
       end)
 
     children = [
-      # Start the Ecto repository
       OpenDevCoach.Repo,
-      # Start the main session GenServer
       OpenDevCoach.Session,
-      # Start the TioComodo REPL server
+      OpenDevCoach.Scheduler,
       {TioComodo.Repl.Server, prompt: "opendevcoach> ", name: OpenDevCoach.Repl, parent: parent}
     ]
 

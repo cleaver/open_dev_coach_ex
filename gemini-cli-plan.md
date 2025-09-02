@@ -73,6 +73,7 @@ This phase focuses on connecting the application to various AI services.
 This phase makes the application proactive by introducing scheduled check-ins and desktop alerts.
 
 1.  **Check-in Scheduler:**
+    *   Note that checkins are scheduled for one point in time only. Recurring checkins may be added later.
     *   Create a `OpenDevCoach.Scheduler` GenServer and add it to the supervision tree.
     *   The `Scheduler` will be responsible for managing scheduled check-ins using `Process.send_after/3`.
     *   When a check-in is triggered, the `Scheduler` will send a `:checkin` message to the `Session` process.

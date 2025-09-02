@@ -131,3 +131,14 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 ### [ADD-2] Tool calls
 - [ ] Ensure our behaviour describes tool calls.
     - [ ] Maybe typespec for data sent to backend.
+
+### [ADD-3] Config tweaks
+- [ ] Handle quotes for tasks
+- [ ] Handle quotes for config
+- [ ] Obfuscate ai key
+
+### [ADD-4] Recurring checkins
+- [ ] Add command like `/checkin add repeat 9:30 Morning checkin`.
+
+### Bugs
+- [ ] Order of tasks doesn't match up correctly.
