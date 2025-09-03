@@ -27,8 +27,10 @@ defmodule OpenDevCoach.MixProject do
   defp deps do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.10"},
       {:ecto_sqlite3, "~> 0.12"},
+      {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:jason, "~> 1.4"},
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:req, "~> 0.4"},

@@ -11,3 +11,23 @@ config :open_dev_coach,
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
+
+# Git hooks
+config :git_hooks,
+  auto_install: true,
+  verbose: true,
+  hooks: [
+    pre_commit: [
+      tasks: [
+        {:cmd, "mix format --check-formatted"}
+      ]
+    ],
+    pre_push: [
+      verbose: false,
+      tasks: [
+        {:cmd, "mix dialyzer"},
+        {:cmd, "mix test --color"},
+        {:cmd, "mix credo --strict"}
+      ]
+    ]
+  ]
