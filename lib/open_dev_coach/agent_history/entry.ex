@@ -20,6 +20,6 @@ defmodule OpenDevCoach.AgentHistory.Entry do
     |> cast(attrs, [:role, :content, :timestamp])
     |> validate_required([:role, :content, :timestamp])
     |> validate_inclusion(:role, ["user", "assistant", "system"])
-    |> validate_length(:content, min: 1, max: 10000)
+    |> validate_length(:content, min: 1, max: 10_000)
   end
 end

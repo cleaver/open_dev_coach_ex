@@ -7,7 +7,7 @@ defmodule OpenDevCoach.Configuration.Config do
   import Ecto.Changeset
 
   # Valid configuration keys
-  @valid_keys ["ai_provider", "ai_model", "ai_api_key"]
+  @valid_keys ["ai_provider", "ai_model", "ai_api_key", "timezone"]
 
   schema "configurations" do
     field(:key, :string)
@@ -29,7 +29,7 @@ defmodule OpenDevCoach.Configuration.Config do
     |> cast(attrs, [:key, :value])
     |> validate_required([:key, :value])
     |> validate_length(:key, min: 1, max: 100)
-    |> validate_length(:value, min: 1, max: 10000)
+    |> validate_length(:value, min: 1, max: 10_000)
     |> validate_inclusion(:key, @valid_keys,
       message: "Invalid configuration key. Valid keys are: #{Enum.join(@valid_keys, ", ")}"
     )

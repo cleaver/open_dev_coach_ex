@@ -8,10 +8,10 @@ defmodule OpenDevCoach.Session do
 
   use GenServer
   require Logger
-  alias OpenDevCoach.Tasks
-  alias OpenDevCoach.Configuration
-  alias OpenDevCoach.AI
   alias OpenDevCoach.AgentHistory
+  alias OpenDevCoach.AI
+  alias OpenDevCoach.Configuration
+  alias OpenDevCoach.Tasks
 
   @doc """
   Starts the Session GenServer.
@@ -33,6 +33,7 @@ defmodule OpenDevCoach.Session do
   @impl true
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
+    set_system_timezone()
     {:ok, %{}}
   end
 
@@ -333,6 +334,21 @@ defmodule OpenDevCoach.Session do
 
   # Private Functions
 
+  @doc """
+  Sets the system timezone from database configuration.
+  """
+  def set_system_timezone do
+    case Configuration.get_config("timezone") do
+      nil ->
+        :ok
+
+      timezone ->
+        Application.put_env(:open_dev_coach, :timezone, timezone)
+        Logger.info("System timezone set to: #{timezone}")
+        :ok
+    end
+  end
+
   defp format_task_list(tasks) do
     case tasks do
       [] ->
@@ -341,11 +357,10 @@ defmodule OpenDevCoach.Session do
       _ ->
         tasks
         |> Enum.with_index(1)
-        |> Enum.map(fn {task, index} ->
+        |> Enum.map_join("\n", fn {task, index} ->
           status_emoji = get_status_emoji(task.status)
           "  #{index}. #{status_emoji} #{task.description} [#{task.status}]"
         end)
-        |> Enum.join("\n")
         |> then(&"Your Tasks:\n#{&1}")
     end
   end
@@ -372,11 +387,10 @@ defmodule OpenDevCoach.Session do
     backup_content =
       tasks
       |> Enum.with_index(1)
-      |> Enum.map(fn {task, _index} ->
+      |> Enum.map_join("\n", fn {task, _index} ->
         status_mark = if task.status == "COMPLETED", do: "x", else: " "
         "- [#{status_mark}] #{task.description} [#{task.status}]"
       end)
-      |> Enum.join("\n")
       |> then(&"# Task Backup - #{Date.utc_today()}\n\n#{&1}")
 
     case File.write(filename, backup_content) do
@@ -387,20 +401,20 @@ defmodule OpenDevCoach.Session do
 
   defp format_config_list(configs) do
     case configs do
-      [] ->
+      configs when map_size(configs) == 0 ->
         "No configurations set. Use `/config set <key> <value>` to add some."
 
       _ ->
         configs
-        |> Enum.map(fn {key, value} ->
-          # Mask API keys for security
-          display_value = if String.contains?(key, "api_key"), do: "***", else: value
-          "  #{key}: #{display_value}"
+        |> Enum.map_join("\n", fn {key, value} ->
+          "  #{key}: #{maybe_redact_value(key, value)}"
         end)
-        |> Enum.join("\n")
         |> then(&"Current Configurations:\n#{&1}")
     end
   end
+
+  defp maybe_redact_value("ai_api_key", _value), do: "***"
+  defp maybe_redact_value(_key, value), do: value
 
   defp format_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
@@ -424,10 +438,9 @@ defmodule OpenDevCoach.Session do
           task_summary =
             tasks
             |> Enum.with_index(1)
-            |> Enum.map(fn {task, index} ->
+            |> Enum.map_join("\n", fn {task, index} ->
               "Task #{index}: #{task.description} [#{task.status}]"
             end)
-            |> Enum.join("\n")
 
           "Your current tasks:\n#{task_summary}"
       end
@@ -438,14 +451,14 @@ defmodule OpenDevCoach.Session do
           "This is your first interaction."
 
         history ->
+          # credo:disable-for-lines:7 Credo.Check.Refactor.Nesting
           history_summary =
             history
             # Last 3 interactions
             |> Enum.take(3)
-            |> Enum.map(fn entry ->
+            |> Enum.map_join("\n", fn entry ->
               "#{entry.role}: #{String.slice(entry.content, 0, 100)}#{if String.length(entry.content) > 100, do: "...", else: ""}"
             end)
-            |> Enum.join("\n")
 
           "Recent conversation:\n#{history_summary}"
       end

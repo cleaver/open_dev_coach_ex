@@ -24,9 +24,6 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
           :error -> {:error, "Invalid check-in ID. Please provide a number."}
         end
 
-      ["status"] ->
-        status([])
-
       _ ->
         {:error,
          """
@@ -34,7 +31,6 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
            /checkin add <time> [description]  - Schedule a check-in
            /checkin list                      - List all check-ins
            /checkin remove <id>               - Remove a check-in
-           /checkin status                    - Show check-in status
 
          Time formats:
            HH:MM (e.g., '09:30' for 9:30 AM)
@@ -93,27 +89,6 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
 
       {:error, reason} ->
         {:error, "Failed to remove check-in: #{reason}"}
-    end
-  end
-
-  @doc """
-  Shows the status of all scheduled check-ins.
-  """
-  def status(_args) do
-    status_info = OpenDevCoach.Scheduler.status()
-
-    if Enum.empty?(status_info) do
-      {:ok, "No active check-ins found."}
-    else
-      status_list =
-        Enum.map_join(status_info, "\n", fn info ->
-          next_occurrence = format_time(info.next_occurrence)
-          description = if info.description, do: " - #{info.description}", else: ""
-
-          "  #{info.id}. #{format_time(info.scheduled_at)}#{description} (Next: #{next_occurrence})"
-        end)
-
-      {:ok, "Check-in Status:\n#{status_list}"}
     end
   end
 

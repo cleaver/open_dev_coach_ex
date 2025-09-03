@@ -8,8 +8,9 @@ defmodule OpenDevCoach.Configuration do
   """
 
   import Ecto.Query
-  alias OpenDevCoach.Repo
+
   alias OpenDevCoach.Configuration.Config
+  alias OpenDevCoach.Repo
 
   @doc """
   Retrieves a configuration value by key.
@@ -29,7 +30,30 @@ defmodule OpenDevCoach.Configuration do
   If the key already exists, it will be updated. If it doesn't exist,
   a new configuration entry will be created.
   """
+  def set_config("timezone", value) do
+    case validate_timezone(value) do
+      {:ok, _} ->
+        result = set_config_internal("timezone", value)
+
+        case result do
+          {:ok, _config} ->
+            OpenDevCoach.Session.set_system_timezone()
+            result
+
+          error ->
+            error
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   def set_config(key, value) when is_binary(key) and is_binary(value) do
+    set_config_internal(key, value)
+  end
+
+  defp set_config_internal(key, value) when is_binary(key) and is_binary(value) do
     case Repo.get_by(Config, key: key) do
       nil ->
         %Config{}
@@ -40,6 +64,14 @@ defmodule OpenDevCoach.Configuration do
         existing_config
         |> Config.changeset(%{value: value})
         |> Repo.update()
+    end
+  end
+
+  defp validate_timezone(timezone) when is_binary(timezone) do
+    if timezone in Timex.timezones() do
+      {:ok, timezone}
+    else
+      {:error, "Invalid timezone: #{timezone}. Use one of the supported timezones."}
     end
   end
 

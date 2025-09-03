@@ -1,8 +1,9 @@
 defmodule OpenDevCoach.AI.IntegrationTest do
   use OpenDevCoach.DataCase, async: false
-  alias OpenDevCoach.Session
-  alias OpenDevCoach.Configuration
+
   alias OpenDevCoach.CLI.Commands
+  alias OpenDevCoach.Configuration
+  alias OpenDevCoach.Session
 
   setup do
     # Clean up any existing configuration

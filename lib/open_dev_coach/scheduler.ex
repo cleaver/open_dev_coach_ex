@@ -54,13 +54,6 @@ defmodule OpenDevCoach.Scheduler do
     GenServer.call(__MODULE__, {:remove_checkin, checkin_id})
   end
 
-  @doc """
-  Gets the status of all scheduled check-ins.
-  """
-  def status do
-    GenServer.call(__MODULE__, :status)
-  end
-
   # GenServer Callbacks
 
   @impl true
@@ -113,23 +106,6 @@ defmodule OpenDevCoach.Scheduler do
         Checkins.delete_checkin(checkin)
         {:reply, {:ok, "Check-in removed"}, state}
     end
-  end
-
-  @impl true
-  def handle_call(:status, _from, state) do
-    checkins = Checkins.list_active_checkins()
-
-    status_info =
-      Enum.map(checkins, fn checkin ->
-        %{
-          id: checkin.id,
-          scheduled_at: checkin.scheduled_at,
-          description: checkin.description,
-          status: checkin.status
-        }
-      end)
-
-    {:reply, status_info, state}
   end
 
   @impl true

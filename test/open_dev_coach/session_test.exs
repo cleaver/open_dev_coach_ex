@@ -1,7 +1,8 @@
 defmodule OpenDevCoach.SessionTest do
   use OpenDevCoach.DataCase, async: false
-  alias OpenDevCoach.Session
+
   alias OpenDevCoach.Configuration
+  alias OpenDevCoach.Session
 
   test "handle_call/3 returns ok tuple for unknown calls" do
     # Use the existing named process if it exists, otherwise start a new one

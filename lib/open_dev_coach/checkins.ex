@@ -10,9 +10,9 @@ defmodule OpenDevCoach.Checkins do
   """
 
   import Ecto.Query
-  alias OpenDevCoach.Repo
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
+  alias OpenDevCoach.Repo
 
   @doc """
   Creates a new check-in, converting local time to UTC for storage.

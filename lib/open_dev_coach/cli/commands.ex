@@ -6,9 +6,9 @@ defmodule OpenDevCoach.CLI.Commands do
   handling basic commands and routing non-commands to the AI system.
   """
 
-  alias OpenDevCoach.CLI.TaskCommands
-  alias OpenDevCoach.CLI.ConfigCommands
   alias OpenDevCoach.CLI.CheckinCommands
+  alias OpenDevCoach.CLI.ConfigCommands
+  alias OpenDevCoach.CLI.TaskCommands
 
   @doc """
   Returns the map of available commands for the REPL.
@@ -47,7 +47,6 @@ defmodule OpenDevCoach.CLI.Commands do
       /checkin add <time>         - Schedule a check-in (e.g., '09:30' or '2h 30m')
       /checkin list               - List all scheduled check-ins
       /checkin remove <id>        - Remove a scheduled check-in
-      /checkin status             - Show status of all check-ins
 
     Configuration:
       /config set <key> <value>   - Set a configuration value
@@ -56,8 +55,6 @@ defmodule OpenDevCoach.CLI.Commands do
       /config reset               - Reset all configurations
       /config keys                - Show valid configuration keys
       /config test                - Test your AI configuration
-      /config timezone            - Show current timezone
-      /config timezone <zone>     - Set timezone (e.g., 'America/New_York')
 
     AI Coaching:
       Any other input will be sent to your AI coach for assistance.
