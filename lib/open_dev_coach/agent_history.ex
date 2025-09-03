@@ -7,8 +7,8 @@ defmodule OpenDevCoach.AgentHistory do
   """
 
   import Ecto.Query
-  alias OpenDevCoach.Repo
   alias OpenDevCoach.AgentHistory.Entry
+  alias OpenDevCoach.Repo
 
   @doc """
   Adds a new conversation entry to the agent history.

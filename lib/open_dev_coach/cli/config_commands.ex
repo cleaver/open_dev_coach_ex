@@ -6,24 +6,23 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   logic to the Session GenServer.
   """
 
+  alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.Session
 
   @doc """
   Dispatches configuration commands to the appropriate handler.
   """
-  def dispatch(args) do
-    case args do
-      ["set", key, value] -> set_config(key, value)
-      ["get", key] -> get_config(key)
-      ["list"] -> list_configs()
-      ["reset"] -> reset_config()
-      ["keys"] -> show_valid_keys()
-      ["test"] -> test_config()
-      ["timezone"] -> show_timezone()
-      ["timezone", timezone] -> set_timezone(timezone)
-      _ -> {:error, "Usage: /config <set|get|list|reset|keys|test|timezone> [key] [value]"}
-    end
-  end
+  def dispatch(["set", key, value]), do: set_config(key, value)
+  def dispatch(["get", key]), do: get_config(key)
+  def dispatch(["list"]), do: list_configs()
+  def dispatch(["reset"]), do: reset_config()
+  def dispatch(["keys"]), do: show_valid_keys()
+  def dispatch(["test"]), do: test_config()
+  def dispatch(["timezone"]), do: show_timezone()
+  def dispatch(["timezone", timezone]), do: set_timezone(timezone)
+
+  def dispatch(_),
+    do: {:error, "Usage: /config <set|get|list|reset|keys|test|timezone> [key] [value]"}
 
   @doc """
   Sets a configuration key-value pair.
@@ -69,11 +68,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   Shows the list of valid configuration keys.
   """
   def show_valid_keys do
-    keys = OpenDevCoach.Configuration.Config.valid_keys()
+    keys = Config.valid_keys()
 
     message = """
     Valid Configuration Keys:
-    #{keys |> Enum.map(&"  • #{&1}") |> Enum.join("\n")}
+    #{keys |> Enum.map_join("\n", &"  • #{&1}")}
 
     Use `/config set <key> <value>` to set a configuration.
     """

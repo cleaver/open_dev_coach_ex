@@ -61,15 +61,9 @@ defmodule OpenDevCoach.Tasks do
           Repo.rollback("Task not found")
 
         task ->
-          changes = %{status: new_status}
-
-          # Add timestamps based on status
           changes =
-            case new_status do
-              "IN-PROGRESS" -> Map.put(changes, :started_at, DateTime.utc_now())
-              "COMPLETED" -> Map.put(changes, :completed_at, DateTime.utc_now())
-              _ -> changes
-            end
+            %{status: new_status}
+            |> maybe_add_timestamp()
 
           task
           |> Task.changeset(changes)
@@ -79,6 +73,14 @@ defmodule OpenDevCoach.Tasks do
   end
 
   def update_task_status(_, _), do: {:error, "Invalid parameters"}
+
+  defp maybe_add_timestamp(%{status: "IN-PROGRESS"} = changes),
+    do: Map.put(changes, :started_at, DateTime.utc_now())
+
+  defp maybe_add_timestamp(%{status: "COMPLETED"} = changes),
+    do: Map.put(changes, :completed_at, DateTime.utc_now())
+
+  defp maybe_add_timestamp(changes), do: changes
 
   @doc """
   Removes a task by its ID.

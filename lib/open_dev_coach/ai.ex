@@ -6,8 +6,8 @@ defmodule OpenDevCoach.AI do
   routing requests to the appropriate provider based on configuration.
   """
 
-  alias OpenDevCoach.Configuration
   alias OpenDevCoach.AI.Providers.Gemini
+  alias OpenDevCoach.Configuration
 
   @doc """
   Sends a chat message to the configured AI provider.

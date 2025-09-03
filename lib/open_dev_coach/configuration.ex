@@ -8,8 +8,9 @@ defmodule OpenDevCoach.Configuration do
   """
 
   import Ecto.Query
-  alias OpenDevCoach.Repo
+
   alias OpenDevCoach.Configuration.Config
+  alias OpenDevCoach.Repo
 
   @doc """
   Retrieves a configuration value by key.

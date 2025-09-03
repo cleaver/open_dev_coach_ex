@@ -6,9 +6,9 @@ defmodule OpenDevCoach.CLI.Commands do
   handling basic commands and routing non-commands to the AI system.
   """
 
-  alias OpenDevCoach.CLI.TaskCommands
-  alias OpenDevCoach.CLI.ConfigCommands
   alias OpenDevCoach.CLI.CheckinCommands
+  alias OpenDevCoach.CLI.ConfigCommands
+  alias OpenDevCoach.CLI.TaskCommands
 
   @doc """
   Returns the map of available commands for the REPL.
