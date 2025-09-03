@@ -7,7 +7,7 @@ defmodule OpenDevCoach.Configuration.Config do
   import Ecto.Changeset
 
   # Valid configuration keys
-  @valid_keys ["ai_provider", "ai_model", "ai_api_key"]
+  @valid_keys ["ai_provider", "ai_model", "ai_api_key", "timezone"]
 
   schema "configurations" do
     field(:key, :string)

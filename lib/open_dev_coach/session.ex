@@ -397,7 +397,7 @@ defmodule OpenDevCoach.Session do
     end
   end
 
-  defp maybe_redact_value("api_key", _value), do: "***"
+  defp maybe_redact_value("ai_api_key", _value), do: "***"
   defp maybe_redact_value(_key, value), do: value
 
   defp format_changeset_errors(changeset) do

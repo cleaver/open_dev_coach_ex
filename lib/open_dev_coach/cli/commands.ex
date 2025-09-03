@@ -55,8 +55,6 @@ defmodule OpenDevCoach.CLI.Commands do
       /config reset               - Reset all configurations
       /config keys                - Show valid configuration keys
       /config test                - Test your AI configuration
-      /config timezone            - Show current timezone
-      /config timezone <zone>     - Set timezone (e.g., 'America/New_York')
 
     AI Coaching:
       Any other input will be sent to your AI coach for assistance.
