@@ -33,6 +33,7 @@ defmodule OpenDevCoach.Session do
   @impl true
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
+    set_system_timezone()
     {:ok, %{}}
   end
 
@@ -332,6 +333,21 @@ defmodule OpenDevCoach.Session do
   end
 
   # Private Functions
+
+  @doc """
+  Sets the system timezone from database configuration.
+  """
+  def set_system_timezone do
+    case Configuration.get_config("timezone") do
+      nil ->
+        :ok
+
+      timezone ->
+        Application.put_env(:open_dev_coach, :timezone, timezone)
+        Logger.info("System timezone set to: #{timezone}")
+        :ok
+    end
+  end
 
   defp format_task_list(tasks) do
     case tasks do

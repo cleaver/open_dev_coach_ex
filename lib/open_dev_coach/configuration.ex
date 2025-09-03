@@ -32,12 +32,28 @@ defmodule OpenDevCoach.Configuration do
   """
   def set_config("timezone", value) do
     case validate_timezone(value) do
-      {:ok, _} -> set_config("timezone", value)
-      {:error, reason} -> {:error, reason}
+      {:ok, _} ->
+        result = set_config_internal("timezone", value)
+
+        case result do
+          {:ok, _config} ->
+            OpenDevCoach.Session.set_system_timezone()
+            result
+
+          error ->
+            error
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   def set_config(key, value) when is_binary(key) and is_binary(value) do
+    set_config_internal(key, value)
+  end
+
+  defp set_config_internal(key, value) when is_binary(key) and is_binary(value) do
     case Repo.get_by(Config, key: key) do
       nil ->
         %Config{}
