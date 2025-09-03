@@ -7,6 +7,9 @@ defmodule OpenDevCoach.MixProject do
       version: "0.1.0",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
+      preferred_cli_env: [
+        "test.watch": :test
+      ],
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env())
     ]
@@ -26,6 +29,7 @@ defmodule OpenDevCoach.MixProject do
       {:ecto, "~> 3.10"},
       {:ecto_sqlite3, "~> 0.12"},
       {:jason, "~> 1.4"},
+      {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:req, "~> 0.4"},
       {:timex, "~> 3.0"},
       {:tio_comodo, "~> 0.1.1"},

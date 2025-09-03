@@ -36,21 +36,39 @@ defmodule OpenDevCoach.Helpers.Date do
   ## Returns
     - {:ok, datetime} on success
     - {:error, reason} on failure
-  """
-  def next_time_hour_minute(hour, minute)
-      when hour >= 0 and hour <= 23 and minute >= 0 and minute <= 59 do
-    today = Timex.today()
-    given_time = Timex.Time.new!(hour, minute, 0)
-    given_time_today = Timex.DateTime.new!(today, given_time, local_timezone())
 
-    if Timex.compare(given_time_today, local_datetime_now(), :minutes) <= 0 do
+  ## Examples
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.next_time_hour_minute(14, 30)
+      iex> datetime.hour
+      14
+      iex> datetime.minute
+      30
+      iex> datetime.time_zone
+      "America/New_York"
+
+      iex> OpenDevCoach.Helpers.Date.next_time_hour_minute(24, 30)
+      {:error, "Invalid time: hour must be 0-23, minute must be 0-59"}
+
+      iex> OpenDevCoach.Helpers.Date.next_time_hour_minute(12, 60)
+      {:error, "Invalid time: hour must be 0-23, minute must be 0-59"}
+  """
+  def next_time_hour_minute(hour, minute, local_time_now \\ local_datetime_now())
+
+  def next_time_hour_minute(hour, minute, local_time_now)
+      when hour >= 0 and hour <= 23 and minute >= 0 and minute <= 59 do
+    todays_date = Timex.to_date(local_time_now)
+    given_time = Timex.Time.new!(hour, minute, 0)
+    given_time_today = Timex.DateTime.new!(todays_date, given_time, local_timezone())
+
+    if Timex.compare(given_time_today, local_time_now, :minutes) <= 0 do
       {:ok, Timex.shift(given_time_today, days: 1)}
     else
       {:ok, given_time_today}
     end
   end
 
-  def next_time_hour_minute(_hour, _minute),
+  def next_time_hour_minute(_hour, _minute, _local_time_now),
     do: {:error, "Invalid time: hour must be 0-23, minute must be 0-59"}
 
   @doc """
@@ -62,13 +80,30 @@ defmodule OpenDevCoach.Helpers.Date do
   ## Returns
     - {:ok, datetime} on success
     - {:error, reason} on failure
+
+  ## Examples
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_time_format("14:30")
+      iex> datetime.hour
+      14
+      iex> datetime.minute
+      30
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_time_format("09:15")
+      iex> datetime.hour
+      9
+      iex> datetime.minute
+      15
+
+      iex> OpenDevCoach.Helpers.Date.parse_time_format("25:30")
+      {:error, "Invalid time: hour must be 0-23, minute must be 0-59"}
   """
-  def parse_time_format(time_str) do
+  def parse_time_format(time_str, local_time_now \\ local_datetime_now()) do
     [hour_str, minute_str] = String.split(time_str, ":")
     hour = String.to_integer(hour_str)
     minute = String.to_integer(minute_str)
 
-    next_time_hour_minute(hour, minute)
+    next_time_hour_minute(hour, minute, local_time_now)
   end
 
   @doc """
@@ -80,6 +115,20 @@ defmodule OpenDevCoach.Helpers.Date do
   ## Returns
     - {:ok, datetime} on success
     - {:error, reason} on failure
+
+  ## Examples
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_interval_format("2h")
+      iex> %DateTime{} = datetime
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_interval_format("30m")
+      iex> %DateTime{} = datetime
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_interval_format("2h 30m")
+      iex> %DateTime{} = datetime
+
+      iex> OpenDevCoach.Helpers.Date.parse_interval_format("0h 0m")
+      {:error, "Invalid interval: must specify at least one hour or minute"}
   """
   def parse_interval_format(interval_str) do
     # Parse patterns like "2h 30m", "30m", "1h"
@@ -109,6 +158,20 @@ defmodule OpenDevCoach.Helpers.Date do
   ## Returns
     - {:ok, datetime} on success
     - {:error, reason} on failure
+
+  ## Examples
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_time_or_interval("14:30")
+      iex> datetime.hour
+      14
+      iex> datetime.minute
+      30
+
+      iex> {:ok, datetime} = OpenDevCoach.Helpers.Date.parse_time_or_interval("2h 30m")
+      iex> %DateTime{} = datetime
+
+      iex> OpenDevCoach.Helpers.Date.parse_time_or_interval("invalid")
+      {:error, "Invalid format. Use HH:MM (e.g., '09:30') or interval (e.g., '2h 30m')"}
   """
   def parse_time_or_interval(input) when is_binary(input) do
     cond do
