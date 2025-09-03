@@ -26,6 +26,7 @@ defmodule OpenDevCoach.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.10"},
       {:ecto_sqlite3, "~> 0.12"},
       {:jason, "~> 1.4"},
