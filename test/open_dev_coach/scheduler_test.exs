@@ -42,19 +42,6 @@ defmodule OpenDevCoach.SchedulerTest do
       refute Enum.any?(checkins, fn c -> c.id == checkin_id end)
     end
 
-    test "provides status information" do
-      {:ok, _checkin_id} = Scheduler.add_checkin("12:00", "Status test")
-      status = Scheduler.status()
-      assert length(status) >= 1
-
-      # Verify status contains the expected fields for one-time check-ins
-      assert Enum.all?(status, fn s ->
-               Map.has_key?(s, :scheduled_at) and
-                 Map.has_key?(s, :status) and
-                 Map.has_key?(s, :description)
-             end)
-    end
-
     test "creates one-time check-ins (not recurring)" do
       # Use a time that's clearly in the future
       future_hour = DateTime.utc_now().hour + 1

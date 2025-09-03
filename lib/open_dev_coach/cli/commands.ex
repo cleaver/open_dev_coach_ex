@@ -47,7 +47,6 @@ defmodule OpenDevCoach.CLI.Commands do
       /checkin add <time>         - Schedule a check-in (e.g., '09:30' or '2h 30m')
       /checkin list               - List all scheduled check-ins
       /checkin remove <id>        - Remove a scheduled check-in
-      /checkin status             - Show status of all check-ins
 
     Configuration:
       /config set <key> <value>   - Set a configuration value
