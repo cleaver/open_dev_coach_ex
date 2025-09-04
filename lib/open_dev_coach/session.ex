@@ -267,7 +267,6 @@ defmodule OpenDevCoach.Session do
   end
 
   @impl true
-  # TODO: Too long. Fix.
   def handle_cast({:handle_checkin, checkin}, state) do
     Logger.info("Processing check-in: #{checkin.id}")
 
@@ -288,73 +287,86 @@ defmodule OpenDevCoach.Session do
     Keep your response focused and actionable.
     """
 
-    # Send to AI
-    case AI.chat([%{role: "user", content: checkin_prompt}], context: context) do
-      {:ok, ai_response} ->
-        # Store the check-in interaction in history
-        AgentHistory.add_conversation(
-          "system",
-          "Check-in triggered: #{if checkin.description, do: checkin.description, else: "Regular check-in"}"
-        )
-
-        AgentHistory.add_conversation("assistant", ai_response)
-
-        # Display the message via the REPL
-        message = """
-        🔔 Check-in Time!
-
-        Scheduled for: #{format_datetime(checkin.scheduled_at)}
-        #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
-
-        🤖 AI Coach Response:
-        #{ai_response}
-        """
-
-        # Log the message and send desktop notification
-        Logger.info(message)
-
-        # Send desktop notification
-        notification_title = "OpenDevCoach Check-in"
-
-        notification_message =
-          if checkin.description do
-            "#{checkin.description}: #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
-          else
-            "Time for your check-in! #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
-          end
-
-        Notifier.notify(notification_title, notification_message)
-
-      {:error, reason} ->
-        Logger.error("AI service error during check-in: #{reason}")
-
-        # Fallback message if AI fails
-        message = """
-        🔔 Check-in Time!
-
-        Scheduled for: #{format_datetime(checkin.scheduled_at)}
-        #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
-
-        ⚠️ AI service temporarily unavailable.
-        This is a good time to review your tasks and progress!
-        """
-
-        Logger.info(message)
-
-        # Send fallback desktop notification
-        notification_title = "OpenDevCoach Check-in"
-
-        notification_message =
-          if checkin.description do
-            "#{checkin.description}: Time to review your tasks and progress!"
-          else
-            "Check-in time! Review your tasks and progress."
-          end
-
-        Notifier.notify(notification_title, notification_message)
-    end
+    # Process the check-in with AI
+    process_checkin_with_ai(checkin, checkin_prompt, context)
 
     {:noreply, state}
+  end
+
+  # Private function to handle AI interaction for check-ins
+  defp process_checkin_with_ai(checkin, prompt, context) do
+    case AI.chat([%{role: "user", content: prompt}], context: context) do
+      {:ok, ai_response} ->
+        handle_successful_ai_response(checkin, ai_response)
+
+      {:error, reason} ->
+        handle_ai_error(checkin, reason)
+    end
+  end
+
+  defp handle_successful_ai_response(checkin, ai_response) do
+    # Store the check-in interaction in history
+    AgentHistory.add_conversation(
+      "system",
+      "Check-in triggered: #{if checkin.description, do: checkin.description, else: "Regular check-in"}"
+    )
+
+    AgentHistory.add_conversation("assistant", ai_response)
+
+    # Display the message via the REPL
+    message = """
+    🔔 Check-in Time!
+
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+    🤖 AI Coach Response:
+    #{ai_response}
+    """
+
+    # Log the message and send desktop notification
+    Logger.info(message)
+
+    # Send desktop notification
+    notification_title = "OpenDevCoach Check-in"
+
+    notification_message =
+      if checkin.description do
+        "#{checkin.description}: #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+      else
+        "Time for your check-in! #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+      end
+
+    Notifier.notify(notification_title, notification_message)
+  end
+
+  defp handle_ai_error(checkin, reason) do
+    Logger.error("AI service error during check-in: #{reason}")
+
+    # Fallback message if AI fails
+    message = """
+    🔔 Check-in Time!
+
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+    ⚠️ AI service temporarily unavailable.
+    This is a good time to review your tasks and progress!
+    """
+
+    Logger.info(message)
+
+    # Send fallback desktop notification
+    notification_title = "OpenDevCoach Check-in"
+
+    notification_message =
+      if checkin.description do
+        "#{checkin.description}: Time to review your tasks and progress!"
+      else
+        "Check-in time! Review your tasks and progress."
+      end
+
+    Notifier.notify(notification_title, notification_message)
   end
 
   # Private Functions
