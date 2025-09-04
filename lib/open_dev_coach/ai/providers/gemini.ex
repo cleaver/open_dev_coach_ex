@@ -61,10 +61,16 @@ defmodule OpenDevCoach.AI.Providers.Gemini do
   defp valid_message?(_), do: false
 
   defp do_chat_request(messages, model, api_key, http_client) do
-    url = "#{@gemini_base_url}/#{model}:generateContent?key=#{api_key}"
+    url = "#{@gemini_base_url}/#{model}:generateContent"
+
+    headers = [
+      {"x-goog-api-key", to_string(api_key)},
+      {"content-type", "application/json"}
+    ]
+
     request_body = build_request_body(messages)
 
-    case http_client.post(url, json: request_body) do
+    case http_client.post(url, headers: headers, json: request_body) do
       {:ok, %{status: 200, body: body}} ->
         parse_success_response(body)
 
@@ -131,5 +137,11 @@ defmodule OpenDevCoach.AI.Providers.Gemini do
       _ ->
         {:error, "AI service error (#{status}): Unexpected response format"}
     end
+  end
+
+  defp maybe_convert_to_string(string) when is_binary(string), do: string
+
+  defp maybe_convert_to_string(maybe_charlist) when is_list(maybe_charlist) do
+    to_string(maybe_charlist)
   end
 end
