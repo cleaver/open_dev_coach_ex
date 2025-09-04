@@ -105,17 +105,17 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 **Goal:** Add desktop notifications for check-ins and improve the overall user experience.
 
-- [ ] **Notifier Module:**
-    - [ ] Create the `OpenDevCoach.Notifier` module with a `notify/2` function that calls the appropriate OS-specific command-line tool.
-- [ ] **Integration:**
-    - [ ] Call `Notifier.notify/2` from the `Session`'s `:checkin` handler.
-- [ ] **UI/UX Enhancements:**
+- [x] **7.1 Notifier Module:**
+    - [x] Create the `OpenDevCoach.Notifier` module with a `notify/2` function that calls the appropriate OS-specific command-line tool.
+- [x] **7.2 Integration:**
+    - [x] Call `Notifier.notify/2` from the `Session`'s `:checkin` handler.
+- [ ] **7.3 UI/UX Enhancements:**
     - [ ] Configure the `tio_comodo` colorscheme in `config/config.exs`.
     - [ ] Use `Owl` within the `CLI.Commands` module to add color and formatting to command output.
     - [ ] Add a loading message before long-running calls (e.g., to the AI).
-- [ ] **Prompt Engineering:**
+- [ ] **7.4 Prompt Engineering:**
     - [ ] Refine the system prompt used in the `Session` GenServer for check-ins.
-- [ ] **Testing & Documentation:**
+- [ ] **7.5 Testing & Documentation:**
     - [ ] Write ExUnit tests for key modules.
     - [ ] Update the `README.md` with full setup and usage instructions.
     - [ ] Add `@moduledoc` and `@doc` annotations.
@@ -135,7 +135,7 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 ### [ADD-3] Config tweaks
 - [ ] Handle quotes for tasks
 - [ ] Handle quotes for config
-- [ ] Obfuscate ai key
+- [x] Obfuscate ai key
 
 ### [ADD-4] Recurring checkins
 - [ ] Add command like `/checkin add repeat 9:30 Morning checkin`.

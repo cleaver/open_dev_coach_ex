@@ -11,6 +11,7 @@ defmodule OpenDevCoach.Session do
   alias OpenDevCoach.AgentHistory
   alias OpenDevCoach.AI
   alias OpenDevCoach.Configuration
+  alias OpenDevCoach.Notifier
   alias OpenDevCoach.Tasks
 
   @doc """
@@ -309,8 +310,20 @@ defmodule OpenDevCoach.Session do
         #{ai_response}
         """
 
-        # Log the message (in a real implementation, this would be sent to the user)
+        # Log the message and send desktop notification
         Logger.info(message)
+
+        # Send desktop notification
+        notification_title = "OpenDevCoach Check-in"
+
+        notification_message =
+          if checkin.description do
+            "#{checkin.description}: #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+          else
+            "Time for your check-in! #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+          end
+
+        Notifier.notify(notification_title, notification_message)
 
       {:error, reason} ->
         Logger.error("AI service error during check-in: #{reason}")
@@ -327,6 +340,18 @@ defmodule OpenDevCoach.Session do
         """
 
         Logger.info(message)
+
+        # Send fallback desktop notification
+        notification_title = "OpenDevCoach Check-in"
+
+        notification_message =
+          if checkin.description do
+            "#{checkin.description}: Time to review your tasks and progress!"
+          else
+            "Check-in time! Review your tasks and progress."
+          end
+
+        Notifier.notify(notification_title, notification_message)
     end
 
     {:noreply, state}

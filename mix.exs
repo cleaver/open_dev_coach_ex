@@ -35,7 +35,7 @@ defmodule OpenDevCoach.MixProject do
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:req, "~> 0.4"},
       {:timex, "~> 3.0"},
-      {:tio_comodo, "~> 0.1.1"},
+      {:tio_comodo, path: "./tio_comodo"},
       {:tzdata, "~> 1.1"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
