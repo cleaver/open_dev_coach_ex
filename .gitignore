@@ -26,5 +26,9 @@ open_dev_coach-*.tar
 *.db
 *.db-*
 
+# logs
+/log/
+
 # temporary library for context
 /tio_comodo
+

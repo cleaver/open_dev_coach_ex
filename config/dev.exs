@@ -9,8 +9,12 @@ config :open_dev_coach, OpenDevCoach.Repo,
 config :open_dev_coach,
   timezone: "America/New_York"
 
-# Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger,
+  backends: [{LoggerFileBackend, :file_log}]
+
+config :logger, :file_log,
+  path: "log/odc.dev.log",
+  level: :debug
 
 # Git hooks
 config :git_hooks,

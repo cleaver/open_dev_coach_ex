@@ -32,6 +32,7 @@ defmodule OpenDevCoach.MixProject do
       {:ecto_sqlite3, "~> 0.12"},
       {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:jason, "~> 1.4"},
+      {:logger_file_backend, "~> 0.0.14"},
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:req, "~> 0.4"},
       {:timex, "~> 3.0"},

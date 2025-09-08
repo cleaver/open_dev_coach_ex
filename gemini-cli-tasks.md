@@ -140,5 +140,8 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 ### [ADD-4] Recurring checkins
 - [ ] Add command like `/checkin add repeat 9:30 Morning checkin`.
 
+### [ADD-5] Logging
+- [x] Configure logging to a file.
+
 ### Bugs
 - [ ] Order of tasks doesn't match up correctly.

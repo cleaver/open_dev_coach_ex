@@ -7,4 +7,9 @@ config :open_dev_coach, OpenDevCoach.Repo,
 config :open_dev_coach,
   ecto_repos: [OpenDevCoach.Repo]
 
-config :logger, level: :warning
+config :logger,
+  backends: [{LoggerFileBackend, :file_log}]
+
+config :logger, :file_log,
+  path: "log/odc.test.log",
+  level: :debug
