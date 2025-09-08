@@ -28,7 +28,7 @@ defmodule OpenDevCoach.AI do
   def chat(messages, opts \\ []) do
     provider = get_configured_provider()
     api_key = Configuration.get_config("ai_api_key")
-    model = Configuration.get_config("ai_model") || "gemini-pro"
+    model = Configuration.get_config("ai_model")
 
     provider_opts = Keyword.merge(opts, api_key: api_key, model: model)
 
