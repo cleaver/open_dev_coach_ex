@@ -138,10 +138,4 @@ defmodule OpenDevCoach.AI.Providers.Gemini do
         {:error, "AI service error (#{status}): Unexpected response format"}
     end
   end
-
-  defp maybe_convert_to_string(string) when is_binary(string), do: string
-
-  defp maybe_convert_to_string(maybe_charlist) when is_list(maybe_charlist) do
-    to_string(maybe_charlist)
-  end
 end
