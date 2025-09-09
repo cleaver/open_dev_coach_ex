@@ -55,24 +55,24 @@ defmodule OpenDevCoach.Session do
   end
 
   @doc """
-  Starts a task (marks as IN-PROGRESS).
+  Starts a task (marks as IN-PROGRESS) by task order number.
   """
-  def start_task(task_id) do
-    GenServer.call(__MODULE__, {:start_task, task_id})
+  def start_task(task_order) do
+    GenServer.call(__MODULE__, {:start_task, task_order})
   end
 
   @doc """
-  Completes a task (marks as COMPLETED).
+  Completes a task (marks as COMPLETED) by task order number.
   """
-  def complete_task(task_id) do
-    GenServer.call(__MODULE__, {:complete_task, task_id})
+  def complete_task(task_order) do
+    GenServer.call(__MODULE__, {:complete_task, task_order})
   end
 
   @doc """
-  Removes a task from the system.
+  Removes a task from the system by task order number.
   """
-  def remove_task(task_id) do
-    GenServer.call(__MODULE__, {:remove_task, task_id})
+  def remove_task(task_order) do
+    GenServer.call(__MODULE__, {:remove_task, task_order})
   end
 
   @doc """
@@ -146,36 +146,56 @@ defmodule OpenDevCoach.Session do
     {:reply, {:ok, message}, state}
   end
 
-  def handle_call({:start_task, task_id}, _from, state) do
-    case Tasks.update_task_status(task_id, "IN-PROGRESS") do
-      {:ok, _} ->
-        message = "Task #{task_id} started and other tasks put on hold"
-        {:reply, {:ok, message}, state}
+  def handle_call({:start_task, task_order}, _from, state) do
+    case get_task_by_order(task_order) do
+      {:ok, task} ->
+        case Tasks.update_task_status(task.id, "IN-PROGRESS") do
+          {:ok, _} ->
+            message =
+              "Task #{task_order} (#{task.description}) started and other tasks put on hold"
+
+            {:reply, {:ok, message}, state}
+
+          {:error, reason} ->
+            {:reply, {:error, "Failed to start task: #{reason}"}, state}
+        end
 
       {:error, reason} ->
-        {:reply, {:error, "Failed to start task: #{reason}"}, state}
+        {:reply, {:error, reason}, state}
     end
   end
 
-  def handle_call({:complete_task, task_id}, _from, state) do
-    case Tasks.update_task_status(task_id, "COMPLETED") do
-      {:ok, _} ->
-        message = "Task #{task_id} marked as completed"
-        {:reply, {:ok, message}, state}
+  def handle_call({:complete_task, task_order}, _from, state) do
+    case get_task_by_order(task_order) do
+      {:ok, task} ->
+        case Tasks.update_task_status(task.id, "COMPLETED") do
+          {:ok, _} ->
+            message = "Task #{task_order} (#{task.description}) marked as completed"
+            {:reply, {:ok, message}, state}
+
+          {:error, reason} ->
+            {:reply, {:error, "Failed to complete task: #{reason}"}, state}
+        end
 
       {:error, reason} ->
-        {:reply, {:error, "Failed to complete task: #{reason}"}, state}
+        {:reply, {:error, reason}, state}
     end
   end
 
-  def handle_call({:remove_task, task_id}, _from, state) do
-    case Tasks.remove_task(task_id) do
-      {:ok, _} ->
-        message = "Task #{task_id} removed"
-        {:reply, {:ok, message}, state}
+  def handle_call({:remove_task, task_order}, _from, state) do
+    case get_task_by_order(task_order) do
+      {:ok, task} ->
+        case Tasks.remove_task(task.id) do
+          {:ok, _} ->
+            message = "Task #{task_order} (#{task.description}) removed"
+            {:reply, {:ok, message}, state}
+
+          {:error, reason} ->
+            {:reply, {:error, "Failed to remove task: #{reason}"}, state}
+        end
 
       {:error, reason} ->
-        {:reply, {:error, "Failed to remove task: #{reason}"}, state}
+        {:reply, {:error, reason}, state}
     end
   end
 
@@ -370,6 +390,17 @@ defmodule OpenDevCoach.Session do
   end
 
   # Private Functions
+
+  defp get_task_by_order(order) when is_integer(order) and order > 0 do
+    tasks = Tasks.list_tasks()
+
+    case Enum.at(tasks, order - 1) do
+      nil -> {:error, "Task #{order} not found. Use `/task list` to see available tasks."}
+      task -> {:ok, task}
+    end
+  end
+
+  defp get_task_by_order(_), do: {:error, "Invalid task order. Must be a positive integer."}
 
   @doc """
   Sets the system timezone from database configuration.

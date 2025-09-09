@@ -64,8 +64,8 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def start(task_number) do
     case parse_task_number(task_number) do
-      {:ok, task_id} ->
-        case Session.start_task(task_id) do
+      {:ok, task_order} ->
+        case Session.start_task(task_order) do
           {:ok, message} -> {:ok, message}
           {:error, message} -> {:error, message}
         end
@@ -80,8 +80,8 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def complete(task_number) do
     case parse_task_number(task_number) do
-      {:ok, task_id} ->
-        case Session.complete_task(task_id) do
+      {:ok, task_order} ->
+        case Session.complete_task(task_order) do
           {:ok, message} -> {:ok, message}
           {:error, message} -> {:error, message}
         end
@@ -96,8 +96,8 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def remove(task_number) do
     case parse_task_number(task_number) do
-      {:ok, task_id} ->
-        case Session.remove_task(task_id) do
+      {:ok, task_order} ->
+        case Session.remove_task(task_order) do
           {:ok, message} -> {:ok, message}
           {:error, message} -> {:error, message}
         end
@@ -122,16 +122,9 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   defp parse_task_number(task_number) do
     case Integer.parse(task_number) do
       {number, ""} when number > 0 ->
-        # Convert display number to actual task ID by listing tasks and finding the right one
-        case Session.list_tasks() do
-          {:ok, _message} ->
-            # For now, we'll use the display number as the task ID
-            # In a more sophisticated implementation, we'd map display numbers to actual IDs
-            {:ok, number}
-
-          {:error, message} ->
-            {:error, "Failed to list tasks: #{message}"}
-        end
+        # The display number is now used directly as the task order
+        # The Session module handles mapping order to actual task ID
+        {:ok, number}
 
       _ ->
         {:error, "Invalid task number. Please provide a positive integer."}

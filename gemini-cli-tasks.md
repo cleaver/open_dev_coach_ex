@@ -144,4 +144,4 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 - [x] Configure logging to a file.
 
 ### Bugs
-- [ ] Order of tasks doesn't match up correctly.
+- [x] Order of tasks doesn't match up correctly.
