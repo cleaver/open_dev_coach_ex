@@ -7,9 +7,9 @@ defmodule OpenDevCoach.SessionTest do
   test "handle_call/3 returns ok tuple for unknown calls" do
     # Use the existing named process if it exists, otherwise start a new one
     pid =
-      case Process.whereis(OpenDevCoach.Servers.Session) do
+      case Process.whereis(Session) do
         nil ->
-          {:ok, new_pid} = OpenDevCoach.Servers.Session.start_link([])
+          {:ok, new_pid} = Session.start_link([])
           new_pid
 
         existing_pid ->

@@ -9,6 +9,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   require Logger
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Helpers.Date, as: DateHelper
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Initializes the scheduler state.
@@ -111,7 +112,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
 
       checkin ->
         # Send check-in message to Session
-        OpenDevCoach.Servers.Session.handle_checkin(checkin)
+        Session.handle_checkin(checkin)
 
         # Update last triggered time and mark as completed
         Checkins.update_checkin(checkin, %{

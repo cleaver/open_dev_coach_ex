@@ -9,6 +9,7 @@ defmodule OpenDevCoach.CLI.Commands do
   alias OpenDevCoach.CLI.CheckinCommands
   alias OpenDevCoach.CLI.ConfigCommands
   alias OpenDevCoach.CLI.TaskCommands
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Returns the map of available commands for the REPL.
@@ -83,7 +84,7 @@ defmodule OpenDevCoach.CLI.Commands do
   This function routes user input to the AI coach for assistance.
   """
   def handle_unknown(input) do
-    case OpenDevCoach.Servers.Session.chat_with_ai(input) do
+    case Session.chat_with_ai(input) do
       {:ok, response} ->
         {:ok, response}
 
