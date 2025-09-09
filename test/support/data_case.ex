@@ -36,7 +36,7 @@ defmodule OpenDevCoach.DataCase do
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OpenDevCoach.Repo)
 
-    servers_to_allow = [OpenDevCoach.Servers.Session, OpenDevCoach.Scheduler]
+    servers_to_allow = [OpenDevCoach.Servers.Session, OpenDevCoach.Servers.Scheduler]
 
     Enum.each(servers_to_allow, fn server ->
       pid = Process.whereis(server)

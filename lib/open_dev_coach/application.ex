@@ -20,7 +20,7 @@ defmodule OpenDevCoach.Application do
       [
         OpenDevCoach.Repo,
         OpenDevCoach.Servers.Session,
-        OpenDevCoach.Scheduler
+        OpenDevCoach.Servers.Scheduler
       ] ++
         maybe_start_repl(parent)
 

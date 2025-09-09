@@ -1,72 +1,39 @@
-defmodule OpenDevCoach.Scheduler do
+defmodule OpenDevCoach.Servers.Scheduler.Impl do
   @moduledoc """
-  GenServer responsible for managing scheduled check-ins.
+  Pure business logic for the Scheduler functionality.
 
-  This module handles scheduling check-ins using Process.send_after/3,
-  restores scheduled check-ins from the database on startup,
-  and handles missed check-ins by marking them as SKIPPED.
-
-  Timezone Handling:
-  - Initial scheduling (parse_time_or_interval): Uses local time to determine if user means today or tomorrow
-  - Scheduling (calculate_next_occurrence): Works with stored UTC times for consistency
-  - The checkins context handles all timezone conversion between local display and UTC storage
+  This module contains all the application logic without any GenServer concerns.
+  It can be easily tested and reused independently of the server implementation.
   """
 
-  use GenServer
   require Logger
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Helpers.Date, as: DateHelper
-  alias OpenDevCoach.Servers.Session
 
   @doc """
-  Starts the Scheduler GenServer.
+  Initializes the scheduler state.
   """
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  def init(_opts) do
+    Logger.info("OpenDevCoach Scheduler started")
+    # Handle missed check-ins and restore active ones from database
+    handle_missed_checkins()
+    restore_checkins_from_database()
+    %{}
   end
 
   @doc """
   Adds a new check-in to the scheduler.
 
   ## Parameters
+    - state: Current scheduler state
     - time_or_interval: Either "HH:MM" format or interval like "2h 30m"
     - description: Optional description for the check-in
 
   ## Returns
-    - {:ok, checkin_id} on success
-    - {:error, reason} on failure
+    - {{:ok, checkin_id}, new_state} on success
+    - {{:error, reason}, state} on failure
   """
-  def add_checkin(time_or_interval, description \\ nil) do
-    GenServer.call(__MODULE__, {:add_checkin, time_or_interval, description})
-  end
-
-  @doc """
-  Lists all scheduled check-ins.
-  """
-  def list_checkins do
-    GenServer.call(__MODULE__, :list_checkins)
-  end
-
-  @doc """
-  Removes a scheduled check-in by ID.
-  """
-  def remove_checkin(checkin_id) do
-    GenServer.call(__MODULE__, {:remove_checkin, checkin_id})
-  end
-
-  # GenServer Callbacks
-
-  @impl true
-  def init(_opts) do
-    Logger.info("OpenDevCoach Scheduler started")
-    # Handle missed check-ins and restore active ones from database
-    handle_missed_checkins()
-    restore_checkins_from_database()
-    {:ok, %{}}
-  end
-
-  @impl true
-  def handle_call({:add_checkin, time_or_interval, description}, _from, state) do
+  def add_checkin(state, time_or_interval, description \\ nil) do
     case parse_time_or_interval(time_or_interval) do
       {:ok, next_time} ->
         case Checkins.create_checkin(%{
@@ -76,48 +43,75 @@ defmodule OpenDevCoach.Scheduler do
              }) do
           {:ok, checkin} ->
             schedule_checkin(checkin)
-            {:reply, {:ok, checkin.id}, state}
+            {{:ok, checkin.id}, state}
 
           {:error, changeset} ->
-            {:reply, {:error, "Failed to create check-in: #{inspect(changeset.errors)}"}, state}
+            {{:error, "Failed to create check-in: #{inspect(changeset.errors)}"}, state}
         end
 
       {:error, reason} ->
-        {:reply, {:error, reason}, state}
+        {{:error, reason}, state}
     end
   end
 
-  @impl true
-  def handle_call(:list_checkins, _from, state) do
+  @doc """
+  Lists all scheduled check-ins.
+
+  ## Parameters
+    - state: Current scheduler state
+
+  ## Returns
+    - {checkins, state} where checkins is the list of active check-ins
+  """
+  def list_checkins(state) do
     checkins = Checkins.list_active_checkins()
-    {:reply, checkins, state}
+    {checkins, state}
   end
 
-  @impl true
-  def handle_call({:remove_checkin, checkin_id}, _from, state) do
+  @doc """
+  Removes a scheduled check-in by ID.
+
+  ## Parameters
+    - state: Current scheduler state
+    - checkin_id: ID of the check-in to remove
+
+  ## Returns
+    - {{:ok, message}, new_state} on success
+    - {{:error, reason}, state} on failure
+  """
+  def remove_checkin(state, checkin_id) do
     case Checkins.get_checkin(checkin_id) do
       nil ->
-        {:reply, {:error, "Check-in not found"}, state}
+        {{:error, "Check-in not found"}, state}
 
       checkin ->
         # Cancel any pending timer
         cancel_checkin_timer(checkin_id)
         # Remove from database
         Checkins.delete_checkin(checkin)
-        {:reply, {:ok, "Check-in removed"}, state}
+        {{:ok, "Check-in removed"}, state}
     end
   end
 
-  @impl true
-  def handle_info({:checkin, checkin_id}, state) do
+  @doc """
+  Handles a check-in trigger from the timer.
+
+  ## Parameters
+    - state: Current scheduler state
+    - checkin_id: ID of the check-in that was triggered
+
+  ## Returns
+    - {new_state, new_state} (state doesn't change for check-in handling)
+  """
+  def handle_checkin_trigger(state, checkin_id) do
     case Checkins.get_checkin(checkin_id) do
       nil ->
         Logger.warning("Check-in #{checkin_id} not found, skipping")
-        {:noreply, state}
+        {state, state}
 
       checkin ->
         # Send check-in message to Session
-        Session.handle_checkin(checkin)
+        OpenDevCoach.Servers.Session.handle_checkin(checkin)
 
         # Update last triggered time and mark as completed
         Checkins.update_checkin(checkin, %{
@@ -128,7 +122,7 @@ defmodule OpenDevCoach.Scheduler do
         # No rescheduling - this is a one-time check-in
         Logger.info("Check-in #{checkin_id} completed and marked as COMPLETED")
 
-        {:noreply, state}
+        {state, state}
     end
   end
 

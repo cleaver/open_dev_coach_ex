@@ -43,7 +43,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   Adds a new scheduled check-in.
   """
   def add_checkin(time, description) do
-    case OpenDevCoach.Scheduler.add_checkin(time, description) do
+    case OpenDevCoach.Servers.Scheduler.add_checkin(time, description) do
       {:ok, _checkin_id} ->
         message =
           if description && description != "" do
@@ -63,7 +63,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   Lists all scheduled check-ins.
   """
   def list_checkins(_args) do
-    checkins = OpenDevCoach.Scheduler.list_checkins()
+    checkins = OpenDevCoach.Servers.Scheduler.list_checkins()
 
     if Enum.empty?(checkins) do
       {:ok, "No scheduled check-ins found."}
@@ -83,7 +83,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   Removes a scheduled check-in by ID.
   """
   def remove_checkin(checkin_id) do
-    case OpenDevCoach.Scheduler.remove_checkin(checkin_id) do
+    case OpenDevCoach.Servers.Scheduler.remove_checkin(checkin_id) do
       {:ok, message} ->
         {:ok, message}
 

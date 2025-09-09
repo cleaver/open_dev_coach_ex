@@ -1,6 +1,6 @@
 defmodule OpenDevCoach.SchedulerTest do
   use OpenDevCoach.DataCase, async: false
-  alias OpenDevCoach.Scheduler
+  alias OpenDevCoach.Servers.Scheduler
 
   describe "time parsing" do
     test "parses HH:MM format correctly" do
