@@ -3,7 +3,7 @@ defmodule OpenDevCoach.AI.IntegrationTest do
 
   alias OpenDevCoach.CLI.Commands
   alias OpenDevCoach.Configuration
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.Servers.Session
 
   setup do
     # Clean up any existing configuration

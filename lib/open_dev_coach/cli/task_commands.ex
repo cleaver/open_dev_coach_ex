@@ -6,7 +6,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   adding, listing, starting, completing, removing, and backing up tasks.
   """
 
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Dispatches task-related commands based on the first argument.

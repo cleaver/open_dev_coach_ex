@@ -7,7 +7,7 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
 
   alias OpenDevCoach.Configuration.Config
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Dispatches configuration commands to the appropriate handler.

@@ -83,7 +83,7 @@ defmodule OpenDevCoach.CLI.Commands do
   This function routes user input to the AI coach for assistance.
   """
   def handle_unknown(input) do
-    case OpenDevCoach.Session.chat_with_ai(input) do
+    case OpenDevCoach.Servers.Session.chat_with_ai(input) do
       {:ok, response} ->
         {:ok, response}
 

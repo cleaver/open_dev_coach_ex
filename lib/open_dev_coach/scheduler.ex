@@ -16,7 +16,7 @@ defmodule OpenDevCoach.Scheduler do
   require Logger
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Helpers.Date, as: DateHelper
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Starts the Scheduler GenServer.

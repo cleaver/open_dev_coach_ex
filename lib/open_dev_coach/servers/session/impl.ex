@@ -1,12 +1,11 @@
-defmodule OpenDevCoach.Session do
+defmodule OpenDevCoach.Servers.Session.Impl do
   @moduledoc """
-  Main session GenServer for managing OpenDevCoach application state.
+  Pure business logic for the Session functionality.
 
-  This module handles the core application logic and state management,
-  serving as the central coordinator for all operations.
+  This module contains all the application logic without any GenServer concerns.
+  It can be easily tested and reused independently of the server implementation.
   """
 
-  use GenServer
   require Logger
   alias OpenDevCoach.AgentHistory
   alias OpenDevCoach.AI
@@ -15,27 +14,12 @@ defmodule OpenDevCoach.Session do
   alias OpenDevCoach.Tasks
 
   @doc """
-  Starts the Session GenServer.
+  Initializes the session state.
   """
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-  end
-
-  @doc """
-  Handles a check-in trigger from the scheduler.
-
-  This function is called when a scheduled check-in time is reached.
-  It will gather context and call the AI system for a coaching response.
-  """
-  def handle_checkin(checkin) do
-    GenServer.cast(__MODULE__, {:handle_checkin, checkin})
-  end
-
-  @impl true
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
     set_system_timezone()
-    {:ok, %{}}
+    %{}
   end
 
   # Task Management Functions
@@ -43,110 +27,30 @@ defmodule OpenDevCoach.Session do
   @doc """
   Adds a new task to the system.
   """
-  def add_task(description) do
-    GenServer.call(__MODULE__, {:add_task, description})
+  def add_task(state, description) do
+    case Tasks.add_task(description) do
+      {:ok, task} ->
+        message = "Task added: #{task.description} [ID: #{task.id}]"
+        {{:ok, message}, state}
+
+      {:error, reason} ->
+        {{:error, "Failed to add task: #{reason}"}, state}
+    end
   end
 
   @doc """
   Lists all tasks in the system.
   """
-  def list_tasks do
-    GenServer.call(__MODULE__, {:list_tasks})
+  def list_tasks(state) do
+    tasks = Tasks.list_tasks()
+    message = format_task_list(tasks)
+    {{:ok, message}, state}
   end
 
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
-  def start_task(task_order) do
-    GenServer.call(__MODULE__, {:start_task, task_order})
-  end
-
-  @doc """
-  Completes a task (marks as COMPLETED) by task order number.
-  """
-  def complete_task(task_order) do
-    GenServer.call(__MODULE__, {:complete_task, task_order})
-  end
-
-  @doc """
-  Removes a task from the system by task order number.
-  """
-  def remove_task(task_order) do
-    GenServer.call(__MODULE__, {:remove_task, task_order})
-  end
-
-  @doc """
-  Creates a backup of all tasks in markdown format.
-  """
-  def backup_tasks do
-    GenServer.call(__MODULE__, {:backup_tasks})
-  end
-
-  # Configuration Management Functions
-
-  @doc """
-  Gets a configuration value by key.
-  """
-  def get_config(key) do
-    GenServer.call(__MODULE__, {:get_config, key})
-  end
-
-  @doc """
-  Sets a configuration key-value pair.
-  """
-  def set_config(key, value) do
-    GenServer.call(__MODULE__, {:set_config, key, value})
-  end
-
-  @doc """
-  Lists all configuration settings.
-  """
-  def list_configs do
-    GenServer.call(__MODULE__, {:list_configs})
-  end
-
-  @doc """
-  Resets all configuration to defaults.
-  """
-  def reset_config do
-    GenServer.call(__MODULE__, {:reset_config})
-  end
-
-  # AI Chat Functions
-
-  @doc """
-  Sends a message to the AI and manages conversation history.
-  """
-  def chat_with_ai(user_message) do
-    GenServer.call(__MODULE__, {:chat_with_ai, user_message})
-  end
-
-  @doc """
-  Tests the AI configuration by sending a simple message.
-  """
-  def test_ai_config do
-    GenServer.call(__MODULE__, {:test_ai_config})
-  end
-
-  @impl true
-  def handle_call({:add_task, description}, _from, state) do
-    case Tasks.add_task(description) do
-      {:ok, task} ->
-        message = "Task added: #{task.description} [ID: #{task.id}]"
-        {:reply, {:ok, message}, state}
-
-      {:error, reason} ->
-        {:reply, {:error, "Failed to add task: #{reason}"}, state}
-    end
-  end
-
-  def handle_call({:list_tasks}, _from, state) do
-    tasks = Tasks.list_tasks()
-    message = format_task_list(tasks)
-    {:reply, {:ok, message}, state}
-  end
-
-  def handle_call({:start_task, task_order}, _from, state) do
+  def start_task(state, task_order) do
     case get_task_by_order(task_order) do
       {:ok, task} ->
         case Tasks.update_task_status(task.id, "IN-PROGRESS") do
@@ -154,102 +58,126 @@ defmodule OpenDevCoach.Session do
             message =
               "Task #{task_order} (#{task.description}) started and other tasks put on hold"
 
-            {:reply, {:ok, message}, state}
+            {{:ok, message}, state}
 
           {:error, reason} ->
-            {:reply, {:error, "Failed to start task: #{reason}"}, state}
+            {{:error, "Failed to start task: #{reason}"}, state}
         end
 
       {:error, reason} ->
-        {:reply, {:error, reason}, state}
+        {{:error, reason}, state}
     end
   end
 
-  def handle_call({:complete_task, task_order}, _from, state) do
+  @doc """
+  Completes a task (marks as COMPLETED) by task order number.
+  """
+  def complete_task(state, task_order) do
     case get_task_by_order(task_order) do
       {:ok, task} ->
         case Tasks.update_task_status(task.id, "COMPLETED") do
           {:ok, _} ->
             message = "Task #{task_order} (#{task.description}) marked as completed"
-            {:reply, {:ok, message}, state}
+            {{:ok, message}, state}
 
           {:error, reason} ->
-            {:reply, {:error, "Failed to complete task: #{reason}"}, state}
+            {{:error, "Failed to complete task: #{reason}"}, state}
         end
 
       {:error, reason} ->
-        {:reply, {:error, reason}, state}
+        {{:error, reason}, state}
     end
   end
 
-  def handle_call({:remove_task, task_order}, _from, state) do
+  @doc """
+  Removes a task from the system by task order number.
+  """
+  def remove_task(state, task_order) do
     case get_task_by_order(task_order) do
       {:ok, task} ->
         case Tasks.remove_task(task.id) do
           {:ok, _} ->
             message = "Task #{task_order} (#{task.description}) removed"
-            {:reply, {:ok, message}, state}
+            {{:ok, message}, state}
 
           {:error, reason} ->
-            {:reply, {:error, "Failed to remove task: #{reason}"}, state}
+            {{:error, "Failed to remove task: #{reason}"}, state}
         end
 
       {:error, reason} ->
-        {:reply, {:error, reason}, state}
+        {{:error, reason}, state}
     end
   end
 
-  def handle_call({:backup_tasks}, _from, state) do
+  @doc """
+  Creates a backup of all tasks in markdown format.
+  """
+  def backup_tasks(state) do
     case create_task_backup() do
       {:ok, filename} ->
         message = "Tasks backed up to #{filename}"
-        {:reply, {:ok, message}, state}
+        {{:ok, message}, state}
 
       {:error, reason} ->
-        {:reply, {:error, "Failed to backup tasks: #{reason}"}, state}
+        {{:error, "Failed to backup tasks: #{reason}"}, state}
     end
   end
 
-  # Configuration Management Callbacks
+  # Configuration Management Functions
 
-  def handle_call({:get_config, key}, _from, state) do
+  @doc """
+  Gets a configuration value by key.
+  """
+  def get_config(state, key) do
     case Configuration.get_config(key) do
       nil ->
-        {:reply, {:ok, "Configuration key '#{key}' not found"}, state}
+        {{:ok, "Configuration key '#{key}' not found"}, state}
 
       value ->
-        {:reply, {:ok, "#{key}: #{value}"}, state}
+        {{:ok, "#{key}: #{value}"}, state}
     end
   end
 
-  def handle_call({:set_config, key, value}, _from, state) do
+  @doc """
+  Sets a configuration key-value pair.
+  """
+  def set_config(state, key, value) do
     case Configuration.set_config(key, value) do
       {:ok, _config} ->
         message = "Configuration '#{key}' set to '#{value}'"
-        {:reply, {:ok, message}, state}
+        {{:ok, message}, state}
 
       {:error, changeset} ->
         error_message = format_changeset_errors(changeset)
-        {:reply, {:error, error_message}, state}
+        {{:error, error_message}, state}
     end
   end
 
-  def handle_call({:list_configs}, _from, state) do
+  @doc """
+  Lists all configuration settings.
+  """
+  def list_configs(state) do
     configs = Configuration.list_configs()
     message = format_config_list(configs)
-    {:reply, {:ok, message}, state}
+    {{:ok, message}, state}
   end
 
-  def handle_call({:reset_config}, _from, state) do
+  @doc """
+  Resets all configuration to defaults.
+  """
+  def reset_config(state) do
     case Configuration.reset_config() do
       {:ok, message} ->
-        {:reply, {:ok, message}, state}
+        {{:ok, message}, state}
     end
   end
 
-  # AI Chat Callbacks
+  # AI Chat Functions
 
-  def handle_call({:chat_with_ai, user_message}, _from, state) do
+  @doc """
+  Sends a message to the AI and manages conversation history.
+  """
+  def chat_with_ai(state, user_message) do
     # Store user message in history
     AgentHistory.add_conversation("user", user_message)
 
@@ -265,29 +193,30 @@ defmodule OpenDevCoach.Session do
       {:ok, ai_response} ->
         # Store AI response in history
         AgentHistory.add_conversation("assistant", ai_response)
-        {:reply, {:ok, ai_response}, state}
+        {{:ok, ai_response}, state}
 
       {:error, reason} ->
-        {:reply, {:error, "AI service error: #{reason}"}, state}
+        {{:error, "AI service error: #{reason}"}, state}
     end
   end
 
-  def handle_call({:test_ai_config}, _from, state) do
+  @doc """
+  Tests the AI configuration by sending a simple message.
+  """
+  def test_ai_config(state) do
     case AI.test_configuration() do
       {:ok, message} ->
-        {:reply, {:ok, message}, state}
+        {{:ok, message}, state}
 
       {:error, reason} ->
-        {:reply, {:error, reason}, state}
+        {{:error, reason}, state}
     end
   end
 
-  def handle_call(_request, _from, state) do
-    {:reply, {:ok, "Not implemented yet"}, state}
-  end
-
-  @impl true
-  def handle_cast({:handle_checkin, checkin}, state) do
+  @doc """
+  Handles a check-in trigger from the scheduler.
+  """
+  def handle_checkin(state, checkin) do
     Logger.info("Processing check-in: #{checkin.id}")
 
     # Gather context for the AI
@@ -310,83 +239,7 @@ defmodule OpenDevCoach.Session do
     # Process the check-in with AI
     process_checkin_with_ai(checkin, checkin_prompt, context)
 
-    {:noreply, state}
-  end
-
-  # Private function to handle AI interaction for check-ins
-  defp process_checkin_with_ai(checkin, prompt, context) do
-    case AI.chat([%{role: "user", content: prompt}], context: context) do
-      {:ok, ai_response} ->
-        handle_successful_ai_response(checkin, ai_response)
-
-      {:error, reason} ->
-        handle_ai_error(checkin, reason)
-    end
-  end
-
-  defp handle_successful_ai_response(checkin, ai_response) do
-    # Store the check-in interaction in history
-    AgentHistory.add_conversation(
-      "system",
-      "Check-in triggered: #{if checkin.description, do: checkin.description, else: "Regular check-in"}"
-    )
-
-    AgentHistory.add_conversation("assistant", ai_response)
-
-    # Display the message via the REPL
-    message = """
-    🔔 Check-in Time!
-
-    Scheduled for: #{format_datetime(checkin.scheduled_at)}
-    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
-
-    🤖 AI Coach Response:
-    #{ai_response}
-    """
-
-    # Log the message and send desktop notification
-    Logger.info(message)
-
-    # Send desktop notification
-    notification_title = "OpenDevCoach Check-in"
-
-    notification_message =
-      if checkin.description do
-        "#{checkin.description}: #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
-      else
-        "Time for your check-in! #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
-      end
-
-    Notifier.notify(notification_title, notification_message)
-  end
-
-  defp handle_ai_error(checkin, reason) do
-    Logger.error("AI service error during check-in: #{reason}")
-
-    # Fallback message if AI fails
-    message = """
-    🔔 Check-in Time!
-
-    Scheduled for: #{format_datetime(checkin.scheduled_at)}
-    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
-
-    ⚠️ AI service temporarily unavailable.
-    This is a good time to review your tasks and progress!
-    """
-
-    Logger.info(message)
-
-    # Send fallback desktop notification
-    notification_title = "OpenDevCoach Check-in"
-
-    notification_message =
-      if checkin.description do
-        "#{checkin.description}: Time to review your tasks and progress!"
-      else
-        "Check-in time! Review your tasks and progress."
-      end
-
-    Notifier.notify(notification_title, notification_message)
+    {state, state}
   end
 
   # Private Functions
@@ -559,5 +412,81 @@ defmodule OpenDevCoach.Session do
     |> DateTime.to_string()
     # Format as "YYYY-MM-DD HH:MM:SS"
     |> String.slice(0, 19)
+  end
+
+  # Private function to handle AI interaction for check-ins
+  defp process_checkin_with_ai(checkin, prompt, context) do
+    case AI.chat([%{role: "user", content: prompt}], context: context) do
+      {:ok, ai_response} ->
+        handle_successful_ai_response(checkin, ai_response)
+
+      {:error, reason} ->
+        handle_ai_error(checkin, reason)
+    end
+  end
+
+  defp handle_successful_ai_response(checkin, ai_response) do
+    # Store the check-in interaction in history
+    AgentHistory.add_conversation(
+      "system",
+      "Check-in triggered: #{if checkin.description, do: checkin.description, else: "Regular check-in"}"
+    )
+
+    AgentHistory.add_conversation("assistant", ai_response)
+
+    # Display the message via the REPL
+    message = """
+    🔔 Check-in Time!
+
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+    🤖 AI Coach Response:
+    #{ai_response}
+    """
+
+    # Log the message and send desktop notification
+    Logger.info(message)
+
+    # Send desktop notification
+    notification_title = "OpenDevCoach Check-in"
+
+    notification_message =
+      if checkin.description do
+        "#{checkin.description}: #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+      else
+        "Time for your check-in! #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+      end
+
+    Notifier.notify(notification_title, notification_message)
+  end
+
+  defp handle_ai_error(checkin, reason) do
+    Logger.error("AI service error during check-in: #{reason}")
+
+    # Fallback message if AI fails
+    message = """
+    🔔 Check-in Time!
+
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
+
+    ⚠️ AI service temporarily unavailable.
+    This is a good time to review your tasks and progress!
+    """
+
+    Logger.info(message)
+
+    # Send fallback desktop notification
+    notification_title = "OpenDevCoach Check-in"
+
+    notification_message =
+      if checkin.description do
+        "#{checkin.description}: Time to review your tasks and progress!"
+      else
+        "Check-in time! Review your tasks and progress."
+      end
+
+    Notifier.notify(notification_title, notification_message)
   end
 end
