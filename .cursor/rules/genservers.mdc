@@ -1,0 +1,16 @@
+---
+description: Pragdave genserver pattern
+globs:
+alwaysApply: true
+---
+With genservers, we always follow Pragdave's pattern to separate API, server, and implementation.
+
+An example genserver `kv` would be implemented as follows:
+
+lib
+└── open_dev_coach
+    └── servers
+        ├── kv
+        │   ├── impl.ex     ("Application implementation")
+        │   └── server.ex   ("GenServer implementation")
+        └── kv.ex           (API)
