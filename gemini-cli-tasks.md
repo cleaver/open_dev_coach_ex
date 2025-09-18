@@ -143,5 +143,9 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 ### [ADD-5] Logging
 - [x] Configure logging to a file.
 
+### [ADD-6] API calls in spawned process.
+- [ ] Spawn API calls as a process
+- [ ] Send response to Session on completion or failure.
+
 ### Bugs
 - [x] Order of tasks doesn't match up correctly.
