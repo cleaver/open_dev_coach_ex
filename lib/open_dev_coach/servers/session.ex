@@ -6,6 +6,8 @@ defmodule OpenDevCoach.Servers.Session do
   It delegates all calls to the appropriate GenServer functions.
   """
 
+  import OpenDevCoach.Helpers.Future
+
   alias OpenDevCoach.Servers.Session.Server
 
   @doc """
@@ -35,7 +37,7 @@ defmodule OpenDevCoach.Servers.Session do
   It will gather context and call the AI system for a coaching response.
   """
   def handle_checkin(checkin) do
-    GenServer.cast(__MODULE__, {:handle_checkin, checkin})
+    GenServer.cast(Server, {:handle_checkin, checkin})
   end
 
   # Task Management Functions
@@ -44,42 +46,48 @@ defmodule OpenDevCoach.Servers.Session do
   Adds a new task to the system.
   """
   def add_task(description) do
-    GenServer.call(__MODULE__, {:add_task, description})
+    future(:add_task, "Make tasks pluggable")
+    GenServer.call(Server, {:add_task, description})
   end
 
   @doc """
   Lists all tasks in the system.
   """
   def list_tasks do
-    GenServer.call(__MODULE__, {:list_tasks})
+    future(:list_tasks, "Make tasks pluggable")
+    GenServer.call(Server, {:list_tasks})
   end
 
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
   def start_task(task_order) do
-    GenServer.call(__MODULE__, {:start_task, task_order})
+    future(:start_task, "Make tasks pluggable")
+    GenServer.call(Server, {:start_task, task_order})
   end
 
   @doc """
   Completes a task (marks as COMPLETED) by task order number.
   """
   def complete_task(task_order) do
-    GenServer.call(__MODULE__, {:complete_task, task_order})
+    future(:complete_task, "Make tasks pluggable")
+    GenServer.call(Server, {:complete_task, task_order})
   end
 
   @doc """
   Removes a task from the system by task order number.
   """
   def remove_task(task_order) do
-    GenServer.call(__MODULE__, {:remove_task, task_order})
+    future(:remove_task, "Make tasks pluggable")
+    GenServer.call(Server, {:remove_task, task_order})
   end
 
   @doc """
   Creates a backup of all tasks in markdown format.
   """
   def backup_tasks do
-    GenServer.call(__MODULE__, {:backup_tasks})
+    future(:backup_tasks, "Make tasks pluggable")
+    GenServer.call(Server, {:backup_tasks})
   end
 
   # Configuration Management Functions
@@ -88,28 +96,42 @@ defmodule OpenDevCoach.Servers.Session do
   Gets a configuration value by key.
   """
   def get_config(key) do
-    GenServer.call(__MODULE__, {:get_config, key})
+    GenServer.call(Server, {:get_config, key})
   end
 
   @doc """
   Sets a configuration key-value pair.
   """
   def set_config(key, value) do
-    GenServer.call(__MODULE__, {:set_config, key, value})
+    GenServer.call(Server, {:set_config, key, value})
   end
 
   @doc """
   Lists all configuration settings.
   """
   def list_configs do
-    GenServer.call(__MODULE__, {:list_configs})
+    GenServer.call(Server, {:list_configs})
   end
 
   @doc """
   Resets all configuration to defaults.
   """
   def reset_config do
-    GenServer.call(__MODULE__, {:reset_config})
+    GenServer.call(Server, {:reset_config})
+  end
+
+  @doc """
+  Updates the session timezone.
+  """
+  def update_timezone(timezone) do
+    GenServer.cast(Server, {:update_timezone, timezone})
+  end
+
+  @doc """
+  Gets the session timezone.
+  """
+  def get_timezone do
+    GenServer.call(Server, {:get_timezone})
   end
 
   # AI Chat Functions
@@ -118,13 +140,13 @@ defmodule OpenDevCoach.Servers.Session do
   Sends a message to the AI and manages conversation history.
   """
   def chat_with_ai(user_message) do
-    GenServer.call(__MODULE__, {:chat_with_ai, user_message})
+    GenServer.call(Server, {:chat_with_ai, user_message})
   end
 
   @doc """
   Tests the AI configuration by sending a simple message.
   """
   def test_ai_config do
-    GenServer.call(__MODULE__, {:test_ai_config})
+    GenServer.call(Server, {:test_ai_config})
   end
 end

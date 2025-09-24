@@ -20,7 +20,31 @@ defmodule OpenDevCoach.Helpers.Date do
   Gets the configured local timezone.
   """
   def local_timezone do
-    Application.get_env(:open_dev_coach, :timezone, "America/New_York")
+    # Try to get timezone from Session state, fallback to Application env
+    case get_session_timezone() do
+      nil -> Application.get_env(:open_dev_coach, :timezone, "America/New_York")
+      timezone -> timezone
+    end
+  end
+
+  @doc """
+  Gets the timezone from Session state if available.
+  """
+  def get_session_timezone do
+    case Process.whereis(OpenDevCoach.Session) do
+      nil ->
+        nil
+
+      _pid ->
+        try do
+          case GenServer.call(OpenDevCoach.Session, :get_timezone) do
+            {:ok, timezone} -> timezone
+            _ -> nil
+          end
+        rescue
+          _ -> nil
+        end
+    end
   end
 
   @doc """

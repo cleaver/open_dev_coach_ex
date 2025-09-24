@@ -7,19 +7,29 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   """
 
   require Logger
+
+  import OpenDevCoach.Helpers.Future
+
   alias OpenDevCoach.AgentHistory
   alias OpenDevCoach.AI
   alias OpenDevCoach.Configuration
   alias OpenDevCoach.Notifier
   alias OpenDevCoach.Tasks
+  alias TioComodo.Repl.Server, as: ReplServer
 
   @doc """
   Initializes the session state.
   """
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
-    set_system_timezone()
-    %{}
+    timezone = Configuration.get_config("timezone") || "America/New_York"
+    tasks = Tasks.list_tasks()
+
+    %{
+      self: OpenDevCoach.Servers.Session,
+      tasks: tasks,
+      timezone: timezone
+    }
   end
 
   # Task Management Functions
@@ -27,86 +37,120 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Adds a new task to the system.
   """
+  @spec add_task(map(), String.t()) :: map()
   def add_task(state, description) do
     case Tasks.add_task(description) do
       {:ok, task} ->
-        message = "Task added: #{task.description} [ID: #{task.id}]"
-        {{:ok, message}, state}
+        %{state | tasks: Map.get(state, :tasks, []) ++ [task]}
 
       {:error, reason} ->
-        {{:error, "Failed to add task: #{reason}"}, state}
+        Logger.error("Failed to add task: #{reason}")
+        state
     end
   end
 
   @doc """
   Lists all tasks in the system.
   """
+  @spec list_tasks(map()) :: {String.t(), map()}
   def list_tasks(state) do
-    tasks = Tasks.list_tasks()
-    message = format_task_list(tasks)
-    {{:ok, message}, state}
+    task_list =
+      state
+      |> Map.get(:tasks, [])
+      |> format_task_list()
+
+    {task_list, state}
   end
 
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
-  def start_task(state, task_order) do
-    case get_task_by_order(task_order) do
-      {:ok, task} ->
-        case Tasks.update_task_status(task.id, "IN-PROGRESS") do
-          {:ok, _} ->
-            message =
-              "Task #{task_order} (#{task.description}) started and other tasks put on hold"
-
-            {{:ok, message}, state}
-
-          {:error, reason} ->
-            {{:error, "Failed to start task: #{reason}"}, state}
-        end
+  def start_task(state, task_ordinal) do
+    case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
+      {:ok, new_state} ->
+        Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end)
+        new_tasks = Map.get(new_state, :tasks, [])
+        {new_tasks, new_state}
 
       {:error, reason} ->
-        {{:error, reason}, state}
+        Logger.error("Failed to start task: #{reason}")
+        state
     end
   end
+
+  defp update_task_by_ordinal_in_state(state, task_ordinal, status)
+       when is_integer(task_ordinal) do
+    tasks =
+      Map.get(state, :tasks, [])
+
+    if task_ordinal < 1 or task_ordinal > length(tasks) do
+      {:error, "Task not found"}
+    else
+      new_tasks =
+        tasks
+        |> maybe_put_other_tasks_on_hold("IN-PROGRESS")
+        |> List.update_at(task_ordinal - 1, fn task -> %{task | status: status} end)
+
+      {:ok, %{state | tasks: new_tasks}}
+    end
+  end
+
+  defp update_task_by_ordinal_in_state(_, _, _) do
+    Logger.error("Invalid task number")
+    {:error, "Invalid task number"}
+  end
+
+  defp maybe_put_other_tasks_on_hold(tasks, "IN-PROGRESS") do
+    Enum.map(tasks, fn task ->
+      if task.status == "IN-PROGRESS", do: %{task | status: "ON-HOLD"}, else: task
+    end)
+  end
+
+  defp maybe_put_other_tasks_on_hold(tasks, _status), do: tasks
 
   @doc """
   Completes a task (marks as COMPLETED) by task order number.
   """
-  def complete_task(state, task_order) do
-    case get_task_by_order(task_order) do
-      {:ok, task} ->
-        case Tasks.update_task_status(task.id, "COMPLETED") do
-          {:ok, _} ->
-            message = "Task #{task_order} (#{task.description}) marked as completed"
-            {{:ok, message}, state}
-
-          {:error, reason} ->
-            {{:error, "Failed to complete task: #{reason}"}, state}
-        end
+  def complete_task(state, task_ordinal) do
+    case update_task_by_ordinal_in_state(state, task_ordinal, "COMPLETED") do
+      {:ok, new_state} ->
+        Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "COMPLETED") end)
+        new_state
 
       {:error, reason} ->
-        {{:error, reason}, state}
+        Logger.error("Failed to complete task: #{reason}")
+        state
     end
   end
 
   @doc """
   Removes a task from the system by task order number.
   """
-  def remove_task(state, task_order) do
-    case get_task_by_order(task_order) do
-      {:ok, task} ->
-        case Tasks.remove_task(task.id) do
-          {:ok, _} ->
-            message = "Task #{task_order} (#{task.description}) removed"
-            {{:ok, message}, state}
-
-          {:error, reason} ->
-            {{:error, "Failed to remove task: #{reason}"}, state}
-        end
+  def remove_task(state, task_ordinal) do
+    case remove_task_by_ordinal_in_state(state, task_ordinal) do
+      {:ok, new_state} ->
+        Task.start(fn -> Tasks.remove_task_by_ordinal(task_ordinal) end)
+        new_state
 
       {:error, reason} ->
-        {{:error, reason}, state}
+        Logger.error("Failed to remove task: #{reason}")
+        state
     end
+  end
+
+  defp remove_task_by_ordinal_in_state(state, task_ordinal) when is_integer(task_ordinal) do
+    tasks = Map.get(state, :tasks, [])
+
+    if task_ordinal < 1 or task_ordinal > length(tasks) do
+      {:error, "Task not found"}
+    else
+      new_tasks = List.delete_at(tasks, task_ordinal - 1)
+      {:ok, %{state | tasks: new_tasks}}
+    end
+  end
+
+  defp remove_task_by_ordinal_in_state(_, _) do
+    {:error, "Invalid task ordinal"}
   end
 
   @doc """
@@ -237,12 +281,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     """
 
     # Process the check-in with AI
-    process_checkin_with_ai(checkin, checkin_prompt, context)
+    process_checkin_with_ai(checkin, checkin_prompt, context, state)
 
     {state, state}
   end
-
-  # Private Functions
 
   defp get_task_by_order(order) when is_integer(order) and order > 0 do
     tasks = Tasks.list_tasks()
@@ -256,20 +298,30 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   defp get_task_by_order(_), do: {:error, "Invalid task order. Must be a positive integer."}
 
   @doc """
-  Sets the system timezone from database configuration.
+  Updates the timezone in the session state.
   """
-  def set_system_timezone do
-    case Configuration.get_config("timezone") do
-      nil ->
-        :ok
-
-      timezone ->
-        Application.put_env(:open_dev_coach, :timezone, timezone)
-        Logger.info("System timezone set to: #{timezone}")
-        :ok
-    end
+  def update_timezone(state, timezone) do
+    Logger.info("Session timezone updated to: #{timezone}")
+    Map.put(state, :timezone, timezone)
   end
 
+  @doc """
+  Gets the current timezone from the session state.
+  """
+  def get_timezone(state) do
+    Map.get(state, :timezone, "America/New_York")
+  end
+
+  @doc """
+  Send console output.
+  """
+  @spec output(atom(), String.t()) :: :ok
+  def output(_level, message) do
+    future(:output, "add colour coding for levels")
+    ReplServer.output(message)
+  end
+
+  @spec format_task_list([Task.t()]) :: String.t()
   defp format_task_list(tasks) do
     case tasks do
       [] ->
@@ -396,12 +448,12 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     """
   end
 
-  defp format_datetime(datetime) do
+  defp format_datetime(datetime, state) do
     # Convert UTC to local timezone for display
     local_time =
       case datetime do
         %DateTime{} ->
-          timezone = Application.get_env(:open_dev_coach, :timezone, "America/New_York")
+          timezone = Map.get(state, :timezone, "America/New_York")
           DateTime.shift_zone!(datetime, timezone)
 
         _ ->
@@ -415,17 +467,17 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   end
 
   # Private function to handle AI interaction for check-ins
-  defp process_checkin_with_ai(checkin, prompt, context) do
+  defp process_checkin_with_ai(checkin, prompt, context, state) do
     case AI.chat([%{role: "user", content: prompt}], context: context) do
       {:ok, ai_response} ->
-        handle_successful_ai_response(checkin, ai_response)
+        handle_successful_ai_response(checkin, ai_response, state)
 
       {:error, reason} ->
-        handle_ai_error(checkin, reason)
+        handle_ai_error(checkin, reason, state)
     end
   end
 
-  defp handle_successful_ai_response(checkin, ai_response) do
+  defp handle_successful_ai_response(checkin, ai_response, state) do
     # Store the check-in interaction in history
     AgentHistory.add_conversation(
       "system",
@@ -438,7 +490,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     message = """
     🔔 Check-in Time!
 
-    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    Scheduled for: #{format_datetime(checkin.scheduled_at, state)}
     #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
 
     🤖 AI Coach Response:
@@ -461,14 +513,14 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     Notifier.notify(notification_title, notification_message)
   end
 
-  defp handle_ai_error(checkin, reason) do
+  defp handle_ai_error(checkin, reason, state) do
     Logger.error("AI service error during check-in: #{reason}")
 
     # Fallback message if AI fails
     message = """
     🔔 Check-in Time!
 
-    Scheduled for: #{format_datetime(checkin.scheduled_at)}
+    Scheduled for: #{format_datetime(checkin.scheduled_at, state)}
     #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
 
     ⚠️ AI service temporarily unavailable.

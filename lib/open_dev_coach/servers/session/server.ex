@@ -7,6 +7,9 @@ defmodule OpenDevCoach.Servers.Session.Server do
   """
 
   use GenServer
+
+  import OpenDevCoach.Helpers.Future
+
   alias OpenDevCoach.Servers.Session.Impl
 
   @impl true
@@ -19,35 +22,29 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   @impl true
   def handle_call({:add_task, description}, _from, state) do
-    {result, new_state} = Impl.add_task(state, description)
-    {:reply, result, new_state}
+    state = Impl.add_task(state, description)
+    {:reply, Impl.list_tasks(state), state}
   end
 
-  @impl true
   def handle_call({:list_tasks}, _from, state) do
-    {result, new_state} = Impl.list_tasks(state)
-    {:reply, result, new_state}
+    {:reply, Impl.list_tasks(state), state}
   end
 
-  @impl true
   def handle_call({:start_task, task_order}, _from, state) do
     {result, new_state} = Impl.start_task(state, task_order)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:complete_task, task_order}, _from, state) do
     {result, new_state} = Impl.complete_task(state, task_order)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:remove_task, task_order}, _from, state) do
     {result, new_state} = Impl.remove_task(state, task_order)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:backup_tasks}, _from, state) do
     {result, new_state} = Impl.backup_tasks(state)
     {:reply, result, new_state}
@@ -55,45 +52,43 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   # Configuration Management Callbacks
 
-  @impl true
   def handle_call({:get_config, key}, _from, state) do
     {result, new_state} = Impl.get_config(state, key)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:set_config, key, value}, _from, state) do
     {result, new_state} = Impl.set_config(state, key, value)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:list_configs}, _from, state) do
     {result, new_state} = Impl.list_configs(state)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:reset_config}, _from, state) do
     {result, new_state} = Impl.reset_config(state)
     {:reply, result, new_state}
   end
 
+  def handle_call(:get_timezone, _from, state) do
+    timezone = Impl.get_timezone(state)
+    {:reply, timezone, state}
+  end
+
   # AI Chat Callbacks
 
-  @impl true
   def handle_call({:chat_with_ai, user_message}, _from, state) do
     {result, new_state} = Impl.chat_with_ai(state, user_message)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:test_ai_config}, _from, state) do
     {result, new_state} = Impl.test_ai_config(state)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call(_request, _from, state) do
     {:reply, {:ok, "Not implemented yet"}, state}
   end
@@ -104,5 +99,17 @@ defmodule OpenDevCoach.Servers.Session.Server do
   def handle_cast({:handle_checkin, checkin}, state) do
     {_result, new_state} = Impl.handle_checkin(state, checkin)
     {:noreply, new_state}
+  end
+
+  # Configuration Management
+
+  def handle_cast({:update_timezone, timezone}, _from, state) do
+    {:noreply, Impl.update_timezone(state, timezone)}
+  end
+
+  @impl true
+  def handle_info({:error_message, message}, state) do
+    Impl.output(:error, message)
+    {:noreply, state}
   end
 end

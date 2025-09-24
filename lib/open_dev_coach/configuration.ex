@@ -37,7 +37,20 @@ defmodule OpenDevCoach.Configuration do
 
         case result do
           {:ok, _config} ->
-            OpenDevCoach.Session.set_system_timezone()
+            # Update Session timezone if available
+            case Process.whereis(OpenDevCoach.Session) do
+              nil ->
+                # Session not started yet, will be set on startup
+                :ok
+
+              _pid ->
+                try do
+                  GenServer.call(OpenDevCoach.Session, {:update_timezone, value}, 1000)
+                rescue
+                  _ -> :ok
+                end
+            end
+
             result
 
           error ->

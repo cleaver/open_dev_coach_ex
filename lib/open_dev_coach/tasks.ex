@@ -13,6 +13,7 @@ defmodule OpenDevCoach.Tasks do
   @doc """
   Lists all tasks ordered by creation time (newest first).
   """
+  @spec list_tasks() :: [Task.t()]
   def list_tasks do
     Task
     |> order_by([t], desc: t.inserted_at)
@@ -42,6 +43,21 @@ defmodule OpenDevCoach.Tasks do
   end
 
   def get_task(_), do: {:error, "Invalid task ID"}
+
+  @doc """
+  Updates a task by its ordinal number.
+  """
+  @spec update_task_by_ordinal(integer(), String.t()) :: {:ok, Task.t()} | {:error, String.t()}
+  def update_task_by_ordinal(ordinal, status) when is_integer(ordinal) do
+    task =
+      list_tasks()
+      |> Enum.at(ordinal - 1)
+
+    case task do
+      nil -> {:error, "Task not found"}
+      task -> update_task_status(task.id, status)
+    end
+  end
 
   @doc """
   Updates the status of a task. When setting status to "IN-PROGRESS",
@@ -83,8 +99,23 @@ defmodule OpenDevCoach.Tasks do
   defp maybe_add_timestamp(changes), do: changes
 
   @doc """
+  Updates a task by its ordinal number.
+  """
+  def update_task_by_ordinal(ordinal, status) when is_integer(ordinal) do
+    task =
+      list_tasks()
+      |> Enum.at(ordinal - 1)
+
+    case task do
+      nil -> {:error, "Task not found"}
+      task -> update_task_status(task.id, status)
+    end
+  end
+
+  @doc """
   Removes a task by its ID.
   """
+  @spec remove_task(integer()) :: {:ok, Task.t()} | {:error, String.t()}
   def remove_task(id) when is_integer(id) do
     case Repo.get(Task, id) do
       nil -> {:error, "Task not found"}
@@ -93,4 +124,21 @@ defmodule OpenDevCoach.Tasks do
   end
 
   def remove_task(_), do: {:error, "Invalid task ID"}
+
+  @doc """
+  Removes a task by its ordinal number.
+  """
+  @spec remove_task_by_ordinal(integer()) :: {:ok, Task.t()} | {:error, String.t()}
+  def remove_task_by_ordinal(ordinal) when is_integer(ordinal) do
+    task =
+      list_tasks()
+      |> Enum.at(ordinal - 1)
+
+    case task do
+      nil -> {:error, "Task not found"}
+      task -> Repo.delete(task)
+    end
+  end
+
+  def remove_task_by_ordinal(_), do: {:error, "Invalid task ordinal"}
 end
