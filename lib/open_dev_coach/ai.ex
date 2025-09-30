@@ -7,7 +7,6 @@ defmodule OpenDevCoach.AI do
   """
 
   alias OpenDevCoach.Configuration
-  import ReqLLM.Context
 
   @doc """
   Sends a chat message to the configured AI provider.
@@ -34,14 +33,13 @@ defmodule OpenDevCoach.AI do
            api_key <- Configuration.get_config("ai_api_key"),
            model_name <- Configuration.get_config("ai_model") do
         model_spec = "#{provider_name}:#{model_name}"
-        context = build_context(messages)
 
         # Set the API key in memory for ReqLLM to use
         provider_atom = String.to_atom(provider_name)
         config_key = ReqLLM.Keys.config_key(provider_atom)
         ReqLLM.put_key(config_key, api_key)
 
-        case ReqLLM.generate_text(model_spec, context, opts) do
+        case ReqLLM.generate_text(model_spec, messages, opts) do
           {:ok, response} ->
             text = ReqLLM.Response.text(response)
             tool_calls = response.message.content |> Enum.filter(&(&1.type == :tool_call))
@@ -54,16 +52,6 @@ defmodule OpenDevCoach.AI do
         {:error, reason} -> {:error, reason}
       end
     end
-  end
-
-  defp build_context(messages) do
-    messages
-    |> Enum.map(fn
-      %{role: "user", content: content} -> user(content)
-      %{role: "assistant", content: content} -> assistant(content)
-      %{role: "system", content: content} -> system(content)
-    end)
-    |> ReqLLM.Context.new()
   end
 
   @doc """
@@ -109,9 +97,6 @@ defmodule OpenDevCoach.AI do
     case chat(messages) do
       {:ok, %{text: response}} when is_binary(response) ->
         {:ok, "Test successful: #{response}"}
-
-      {:ok, _} ->
-        {:error, "Test failed: AI response was not in the expected format."}
 
       {:error, reason} ->
         {:error, "Test failed: #{reason}"}

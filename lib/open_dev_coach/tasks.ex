@@ -99,20 +99,6 @@ defmodule OpenDevCoach.Tasks do
   defp maybe_add_timestamp(changes), do: changes
 
   @doc """
-  Updates a task by its ordinal number.
-  """
-  def update_task_by_ordinal(ordinal, status) when is_integer(ordinal) do
-    task =
-      list_tasks()
-      |> Enum.at(ordinal - 1)
-
-    case task do
-      nil -> {:error, "Task not found"}
-      task -> update_task_status(task.id, status)
-    end
-  end
-
-  @doc """
   Removes a task by its ID.
   """
   @spec remove_task(integer()) :: {:ok, Task.t()} | {:error, String.t()}

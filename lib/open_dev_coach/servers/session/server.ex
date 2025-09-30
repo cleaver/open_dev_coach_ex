@@ -8,8 +8,6 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   use GenServer
 
-  import OpenDevCoach.Helpers.Future
-
   alias OpenDevCoach.Servers.Session.Impl
 
   @impl true
@@ -90,7 +88,7 @@ defmodule OpenDevCoach.Servers.Session.Server do
   end
 
   def handle_call(_request, _from, state) do
-    {:reply, {:ok, "Not implemented yet"}, state}
+    {:reply, Impl.get_timezone(state), state}
   end
 
   # Check-in handling

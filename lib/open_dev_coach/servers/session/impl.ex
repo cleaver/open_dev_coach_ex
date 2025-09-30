@@ -32,7 +32,9 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @spec init(_opts :: any()) :: session_state()
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
-    config = Configuration.list_configs()
+
+    config = Configuration.list_configs() |> ensure_timezone_config()
+
     tasks = Tasks.list_tasks()
 
     %{
@@ -40,6 +42,17 @@ defmodule OpenDevCoach.Servers.Session.Impl do
       self: OpenDevCoach.Servers.Session,
       tasks: tasks
     }
+  end
+
+  defp ensure_timezone_config(config) do
+    case Map.get(config, "timezone") do
+      nil ->
+        timezone = Application.get_env(:open_dev_coach, :timezone, "America/New_York")
+        Map.put(config, "timezone", timezone)
+
+      _timezone ->
+        config
+    end
   end
 
   # Task Management Functions
@@ -203,8 +216,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
         message = "Configuration '#{key}' set to '#{value}'"
         {{:ok, message}, new_state}
 
-      {:error, changeset} ->
-        error_message = ChangesetHelper.format_changeset_errors(changeset)
+      {:error, error_message} ->
         {{:error, error_message}, state}
     end
   end
@@ -218,7 +230,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
       {:ok, %{state | config: Map.put(state.config, key, value)}}
     else
       error_message = ChangesetHelper.format_changeset_errors(changeset)
-      {{:error, error_message}, state}
+      {:error, error_message}
     end
   end
 
@@ -226,7 +238,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Lists all configuration settings.
   """
   def list_configs(state) do
-    message = format_config_list(state.configs)
+    message = format_config_list(state.config)
     {{:ok, message}, state}
   end
 
@@ -258,10 +270,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
     # Send to AI
     case AI.chat([%{role: "user", content: user_message}], context: context) do
-      {:ok, ai_response} ->
+      {:ok, %{text: ai_response_text}} ->
         # Store AI response in history
-        AgentHistory.add_conversation("assistant", ai_response)
-        {{:ok, ai_response}, state}
+        AgentHistory.add_conversation("assistant", ai_response_text)
+        {{:ok, ai_response_text}, state}
 
       {:error, reason} ->
         {{:error, "AI service error: #{reason}"}, state}
@@ -315,14 +327,17 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   """
   def update_timezone(state, timezone) do
     Logger.info("Session timezone updated to: #{timezone}")
-    Map.put(state, :timezone, timezone)
+    %{state | config: Map.put(state.config, "timezone", timezone)}
   end
 
   @doc """
   Gets the current timezone from the session state.
   """
   def get_timezone(state) do
-    Map.get(state, :timezone, "America/New_York")
+    case Map.get(state.config, "timezone") do
+      nil -> {:error, "Session timezone not set."}
+      timezone -> {:ok, timezone}
+    end
   end
 
   @doc """
@@ -455,7 +470,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     local_time =
       case datetime do
         %DateTime{} ->
-          timezone = Map.get(state, :timezone, "America/New_York")
+          timezone = Map.get(state.config, "timezone", "America/New_York")
           DateTime.shift_zone!(datetime, timezone)
 
         _ ->
@@ -471,22 +486,22 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   # Private function to handle AI interaction for check-ins
   defp process_checkin_with_ai(checkin, prompt, context, state) do
     case AI.chat([%{role: "user", content: prompt}], context: context) do
-      {:ok, ai_response} ->
-        handle_successful_ai_response(checkin, ai_response, state)
+      {:ok, %{text: ai_response_text}} ->
+        handle_successful_ai_response(checkin, ai_response_text, state)
 
       {:error, reason} ->
         handle_ai_error(checkin, reason, state)
     end
   end
 
-  defp handle_successful_ai_response(checkin, ai_response, state) do
+  defp handle_successful_ai_response(checkin, ai_response_text, state) do
     # Store the check-in interaction in history
     AgentHistory.add_conversation(
       "system",
       "Check-in triggered: #{if checkin.description, do: checkin.description, else: "Regular check-in"}"
     )
 
-    AgentHistory.add_conversation("assistant", ai_response)
+    AgentHistory.add_conversation("assistant", ai_response_text)
 
     # Display the message via the REPL
     message = """
@@ -496,7 +511,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
 
     🤖 AI Coach Response:
-    #{ai_response}
+    #{ai_response_text}
     """
 
     # Log the message and send desktop notification
@@ -507,9 +522,9 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
     notification_message =
       if checkin.description do
-        "#{checkin.description}: #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+        "#{checkin.description}: #{String.slice(ai_response_text, 0, 100)}#{if String.length(ai_response_text) > 100, do: "...", else: ""}"
       else
-        "Time for your check-in! #{String.slice(ai_response, 0, 100)}#{if String.length(ai_response) > 100, do: "...", else: ""}"
+        "Time for your check-in! #{String.slice(ai_response_text, 0, 100)}#{if String.length(ai_response_text) > 100, do: "...", else: ""}"
       end
 
     Notifier.notify(notification_title, notification_message)

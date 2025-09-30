@@ -35,7 +35,11 @@ defmodule OpenDevCoach.Helpers.Date do
   """
   def get_session_timezone do
     Logger.info("Getting Session timezone")
-    Session.get_timezone()
+
+    case Session.get_timezone() do
+      {:ok, timezone} -> timezone
+      _error -> nil
+    end
   end
 
   @doc """
