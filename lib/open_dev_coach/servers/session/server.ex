@@ -31,11 +31,11 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   def handle_call({:start_task, task_order}, _from, state) do
     case Impl.start_task(state, task_order) do
+      {:error, reason} ->
+        {:reply, {:error, "Failed to start task: #{reason}"}, state}
+
       {task_list, new_state} ->
         {:reply, {:ok, task_list}, new_state}
-
-      error_state when is_map(error_state) ->
-        {:reply, {:error, "Failed to start task"}, error_state}
     end
   end
 
@@ -107,7 +107,7 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   # Configuration Management
 
-  def handle_cast({:update_timezone, timezone}, _from, state) do
+  def handle_cast({:update_timezone, timezone}, state) do
     {:noreply, Impl.update_timezone(state, timezone)}
   end
 

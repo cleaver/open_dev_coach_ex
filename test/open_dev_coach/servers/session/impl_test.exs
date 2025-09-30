@@ -112,13 +112,13 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     test "returns original state for invalid task ordinal", %{state: state} do
       returned_state = Impl.start_task(state, 0)
 
-      assert returned_state == state
+      assert returned_state == {:error, "Task not found"}
     end
 
-    test "returns original state for task ordinal out of range", %{state: state} do
+    test "returns error for task ordinal out of range", %{state: state} do
       returned_state = Impl.start_task(state, 10)
 
-      assert returned_state == state
+      assert returned_state == {:error, "Task not found"}
     end
   end
 

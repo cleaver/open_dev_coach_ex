@@ -88,7 +88,8 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
-  @spec start_task(session_state(), integer()) :: {String.t(), session_state()}
+  @spec start_task(session_state(), integer()) ::
+          {String.t(), session_state()} | {:error, String.t()}
   def start_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
       {:ok, new_state} ->
@@ -97,7 +98,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
       {:error, reason} ->
         Logger.error("Failed to start task: #{reason}")
-        state
+        {:error, reason}
     end
   end
 
