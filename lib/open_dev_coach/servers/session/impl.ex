@@ -246,10 +246,14 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Resets all configuration to defaults.
   """
   def reset_config(state) do
-    case Configuration.reset_config() do
-      {:ok, message} ->
-        {{:ok, message}, state}
-    end
+    config = %{} |> ensure_timezone_config()
+
+    Task.start(fn ->
+      Configuration.reset_config()
+      Configuration.set_config("timezone", config["timezone"])
+    end)
+
+    {{:ok, "All configurations have been reset"}, %{state | config: config}}
   end
 
   # AI Chat Functions

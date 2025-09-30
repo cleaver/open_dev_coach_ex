@@ -20,27 +20,33 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   @impl true
   def handle_call({:add_task, description}, _from, state) do
-    {result, state} = Impl.add_task(state, description)
-    {:reply, result, state}
+    {task_list, new_state} = Impl.add_task(state, description)
+    {:reply, {:ok, task_list}, new_state}
   end
 
   def handle_call({:list_tasks}, _from, state) do
-    {:reply, Impl.list_tasks(state), state}
+    {task_list, new_state} = Impl.list_tasks(state)
+    {:reply, {:ok, task_list}, new_state}
   end
 
   def handle_call({:start_task, task_order}, _from, state) do
-    {result, new_state} = Impl.start_task(state, task_order)
-    {:reply, result, new_state}
+    case Impl.start_task(state, task_order) do
+      {task_list, new_state} ->
+        {:reply, {:ok, task_list}, new_state}
+
+      error_state when is_map(error_state) ->
+        {:reply, {:error, "Failed to start task"}, error_state}
+    end
   end
 
   def handle_call({:complete_task, task_order}, _from, state) do
-    {result, new_state} = Impl.complete_task(state, task_order)
-    {:reply, result, new_state}
+    new_state = Impl.complete_task(state, task_order)
+    {:reply, {:ok, "Task completed successfully"}, new_state}
   end
 
   def handle_call({:remove_task, task_order}, _from, state) do
-    {result, new_state} = Impl.remove_task(state, task_order)
-    {:reply, result, new_state}
+    new_state = Impl.remove_task(state, task_order)
+    {:reply, {:ok, "Task removed successfully"}, new_state}
   end
 
   def handle_call({:backup_tasks}, _from, state) do
