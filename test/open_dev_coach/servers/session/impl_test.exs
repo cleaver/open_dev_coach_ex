@@ -302,9 +302,20 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       state = %{tasks: tasks}
 
-      # This test will attempt to create a real backup file
-      # In a real test environment, you might want to mock File.write
-      {{:ok, message}, returned_state} = Impl.backup_tasks(state)
+      file_write_double = fn filename, content ->
+        assert String.starts_with?(filename, "task_backup_")
+        assert String.ends_with?(filename, ".md")
+
+        assert String.contains?(content, "# Task Backup")
+        assert String.contains?(content, "Task 1")
+        assert String.contains?(content, "Task 2")
+        assert String.contains?(content, "[PENDING]")
+        assert String.contains?(content, "[COMPLETED]")
+
+        :ok
+      end
+
+      {{:ok, message}, returned_state} = Impl.backup_tasks(state, file_write_double)
 
       assert message =~ "Tasks backed up to"
       assert message =~ "task_backup_"
@@ -314,9 +325,41 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     test "handles empty task list" do
       state = %{tasks: []}
 
-      {{:ok, message}, returned_state} = Impl.backup_tasks(state)
+      # Create a test double for File.write/2
+      file_write_double = fn filename, content ->
+        # Verify the filename format
+        assert String.starts_with?(filename, "task_backup_")
+        assert String.ends_with?(filename, ".md")
+
+        # Verify the content format for empty task list
+        assert String.contains?(content, "# Task Backup")
+        assert String.contains?(content, Date.utc_today() |> Date.to_string())
+
+        :ok
+      end
+
+      {{:ok, message}, returned_state} = Impl.backup_tasks(state, file_write_double)
 
       assert String.contains?(message, "Tasks backed up to")
+      assert returned_state == state
+    end
+
+    test "handles file write errors" do
+      tasks = [
+        %TaskSchema{description: "Task 1", status: "PENDING"}
+      ]
+
+      state = %{tasks: tasks}
+
+      # Create a test double that simulates a file write error
+      file_write_double = fn _filename, _content ->
+        {:error, :enoent}
+      end
+
+      {{:error, message}, returned_state} = Impl.backup_tasks(state, file_write_double)
+
+      assert message =~ "Failed to backup tasks"
+      assert message =~ "Failed to write backup file"
       assert returned_state == state
     end
   end

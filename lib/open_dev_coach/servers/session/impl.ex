@@ -180,8 +180,8 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Creates a backup of all tasks in markdown format.
   """
-  def backup_tasks(state) do
-    case create_task_backup() do
+  def backup_tasks(state, file_write_fn \\ &File.write/2) do
+    case create_task_backup(state, file_write_fn) do
       {:ok, filename} ->
         message = "Tasks backed up to #{filename}"
         {{:ok, message}, state}
@@ -381,8 +381,8 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     end
   end
 
-  defp create_task_backup do
-    tasks = Tasks.list_tasks()
+  defp create_task_backup(state, file_write_fn) do
+    tasks = Map.get(state, :tasks, [])
     filename = "task_backup_#{Date.utc_today()}.md"
 
     backup_content =
@@ -394,7 +394,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
       end)
       |> then(&"# Task Backup - #{Date.utc_today()}\n\n#{&1}")
 
-    case File.write(filename, backup_content) do
+    case file_write_fn.(filename, backup_content) do
       :ok -> {:ok, filename}
       {:error, reason} -> {:error, "Failed to write backup file: #{reason}"}
     end
