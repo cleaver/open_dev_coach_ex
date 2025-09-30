@@ -10,25 +10,35 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   import OpenDevCoach.Helpers.Future
 
+  alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.AgentHistory
   alias OpenDevCoach.AI
   alias OpenDevCoach.Configuration
+  alias OpenDevCoach.Helpers.Changeset, as: ChangesetHelper
   alias OpenDevCoach.Notifier
   alias OpenDevCoach.Tasks
+  alias OpenDevCoach.Tasks.Task, as: TaskSchema
   alias TioComodo.Repl.Server, as: ReplServer
+
+  @type session_state() :: %{
+          config: map(),
+          self: atom(),
+          tasks: [TaskSchema.t()]
+        }
 
   @doc """
   Initializes the session state.
   """
+  @spec init(_opts :: any()) :: session_state()
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
-    timezone = Configuration.get_config("timezone") || "America/New_York"
+    config = Configuration.list_configs()
     tasks = Tasks.list_tasks()
 
     %{
+      config: config,
       self: OpenDevCoach.Servers.Session,
-      tasks: tasks,
-      timezone: timezone
+      tasks: tasks
     }
   end
 
@@ -37,16 +47,16 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Adds a new task to the system.
   """
-  @spec add_task(map(), String.t()) :: map()
+  @spec add_task(map(), String.t()) :: {String.t(), map()}
   def add_task(state, description) do
-    case Tasks.add_task(description) do
-      {:ok, task} ->
-        %{state | tasks: Map.get(state, :tasks, []) ++ [task]}
+    new_state = add_task_to_state(state, description)
+    Task.start(fn -> Tasks.add_task(description) end)
+    list_tasks(new_state)
+  end
 
-      {:error, reason} ->
-        Logger.error("Failed to add task: #{reason}")
-        state
-    end
+  defp add_task_to_state(state, description) do
+    task = %TaskSchema{description: description, status: "PENDING"}
+    %{state | tasks: Map.get(state, :tasks, []) ++ [task]}
   end
 
   @doc """
@@ -65,12 +75,12 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
+  @spec start_task(session_state(), integer()) :: {String.t(), session_state()}
   def start_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
       {:ok, new_state} ->
         Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end)
-        new_tasks = Map.get(new_state, :tasks, [])
-        {new_tasks, new_state}
+        list_tasks(new_state)
 
       {:error, reason} ->
         Logger.error("Failed to start task: #{reason}")
@@ -111,6 +121,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Completes a task (marks as COMPLETED) by task order number.
   """
+  @spec complete_task(session_state(), integer()) :: {String.t(), session_state()}
   def complete_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "COMPLETED") do
       {:ok, new_state} ->
@@ -173,7 +184,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Gets a configuration value by key.
   """
   def get_config(state, key) do
-    case Configuration.get_config(key) do
+    case Map.get(state.config, key, nil) do
       nil ->
         {{:ok, "Configuration key '#{key}' not found"}, state}
 
@@ -186,14 +197,28 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Sets a configuration key-value pair.
   """
   def set_config(state, key, value) do
-    case Configuration.set_config(key, value) do
-      {:ok, _config} ->
+    case set_config_in_state(state, key, value) do
+      {:ok, new_state} ->
+        Task.start(fn -> Configuration.set_config(key, value) end)
         message = "Configuration '#{key}' set to '#{value}'"
-        {{:ok, message}, state}
+        {{:ok, message}, new_state}
 
       {:error, changeset} ->
-        error_message = format_changeset_errors(changeset)
+        error_message = ChangesetHelper.format_changeset_errors(changeset)
         {{:error, error_message}, state}
+    end
+  end
+
+  defp set_config_in_state(state, key, value) do
+    # Create a temporary config struct for validation
+    temp_config = %Config{}
+    changeset = Config.changeset(temp_config, %{key: key, value: value})
+
+    if changeset.valid? do
+      {:ok, %{state | config: Map.put(state.config, key, value)}}
+    else
+      error_message = ChangesetHelper.format_changeset_errors(changeset)
+      {{:error, error_message}, state}
     end
   end
 
@@ -201,8 +226,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Lists all configuration settings.
   """
   def list_configs(state) do
-    configs = Configuration.list_configs()
-    message = format_config_list(configs)
+    message = format_config_list(state.configs)
     {{:ok, message}, state}
   end
 
@@ -285,17 +309,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
     {state, state}
   end
-
-  defp get_task_by_order(order) when is_integer(order) and order > 0 do
-    tasks = Tasks.list_tasks()
-
-    case Enum.at(tasks, order - 1) do
-      nil -> {:error, "Task #{order} not found. Use `/task list` to see available tasks."}
-      task -> {:ok, task}
-    end
-  end
-
-  defp get_task_by_order(_), do: {:error, "Invalid task order. Must be a positive integer."}
 
   @doc """
   Updates the timezone in the session state.
@@ -388,17 +401,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   defp maybe_redact_value("ai_api_key", _value), do: "***"
   defp maybe_redact_value(_key, value), do: value
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Enum.map_join(", ", fn {_field, errors} ->
-      Enum.join(errors, ", ")
-    end)
-  end
 
   defp build_ai_context(recent_history, current_tasks) do
     # Build a context string for the AI

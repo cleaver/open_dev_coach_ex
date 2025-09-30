@@ -6,11 +6,13 @@ defmodule OpenDevCoach.Configuration do
   values stored in the database. Configuration keys include AI provider settings,
   models, API keys, and custom prompts.
   """
+  require Logger
 
   import Ecto.Query
 
   alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.Repo
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Retrieves a configuration value by key.
@@ -33,29 +35,9 @@ defmodule OpenDevCoach.Configuration do
   def set_config("timezone", value) do
     case validate_timezone(value) do
       {:ok, _} ->
-        result = set_config_internal("timezone", value)
-
-        case result do
-          {:ok, _config} ->
-            # Update Session timezone if available
-            case Process.whereis(OpenDevCoach.Session) do
-              nil ->
-                # Session not started yet, will be set on startup
-                :ok
-
-              _pid ->
-                try do
-                  GenServer.call(OpenDevCoach.Session, {:update_timezone, value}, 1000)
-                rescue
-                  _ -> :ok
-                end
-            end
-
-            result
-
-          error ->
-            error
-        end
+        Logger.info("Updating Session timezone to: #{value}")
+        Session.update_timezone(value)
+        set_config_internal("timezone", value)
 
       {:error, reason} ->
         {:error, reason}

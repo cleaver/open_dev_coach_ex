@@ -22,8 +22,8 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   @impl true
   def handle_call({:add_task, description}, _from, state) do
-    state = Impl.add_task(state, description)
-    {:reply, Impl.list_tasks(state), state}
+    {result, state} = Impl.add_task(state, description)
+    {:reply, result, state}
   end
 
   def handle_call({:list_tasks}, _from, state) do

@@ -8,6 +8,9 @@ defmodule OpenDevCoach.Helpers.Date do
   - DateTime calculations
   - Local time utilities
   """
+  require Logger
+
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Gets the current local datetime in the configured timezone.
@@ -31,20 +34,8 @@ defmodule OpenDevCoach.Helpers.Date do
   Gets the timezone from Session state if available.
   """
   def get_session_timezone do
-    case Process.whereis(OpenDevCoach.Session) do
-      nil ->
-        nil
-
-      _pid ->
-        try do
-          case GenServer.call(OpenDevCoach.Session, :get_timezone) do
-            {:ok, timezone} -> timezone
-            _ -> nil
-          end
-        rescue
-          _ -> nil
-        end
-    end
+    Logger.info("Getting Session timezone")
+    Session.get_timezone()
   end
 
   @doc """
