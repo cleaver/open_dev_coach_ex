@@ -10,10 +10,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   import OpenDevCoach.Helpers.Future
 
-  alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.AgentHistory
   alias OpenDevCoach.AI
   alias OpenDevCoach.Configuration
+  alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.Helpers.Changeset, as: ChangesetHelper
   alias OpenDevCoach.Notifier
   alias OpenDevCoach.Tasks
