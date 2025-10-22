@@ -8,6 +8,8 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   use GenServer
 
+  import OpenDevCoach.Helpers.Future
+
   alias OpenDevCoach.Servers.Session.Impl
 
   @impl true
@@ -112,6 +114,10 @@ defmodule OpenDevCoach.Servers.Session.Server do
   end
 
   @impl true
+  def handle_info(:ai_response, _message) do
+    future(:handle_ai_response, "Handle async or streaming response.")
+  end
+
   def handle_info({:error_message, message}, state) do
     Impl.output(:error, message)
     {:noreply, state}

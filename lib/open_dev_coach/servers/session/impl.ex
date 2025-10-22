@@ -11,6 +11,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   import OpenDevCoach.Helpers.Future
 
   alias OpenDevCoach.AgentHistory
+  alias OpenDevCoach.AgentHistory.Entry
   alias OpenDevCoach.AI
   alias OpenDevCoach.Configuration
   alias OpenDevCoach.Configuration.Config
@@ -22,6 +23,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   @type session_state() :: %{
           config: map(),
+          history: [Entry.t()],
           self: atom(),
           tasks: [TaskSchema.t()]
         }
@@ -32,13 +34,13 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @spec init(_opts :: any()) :: session_state()
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
-
     config = Configuration.list_configs() |> ensure_timezone_config()
-
+    history = AgentHistory.get_recent_history()
     tasks = Tasks.list_tasks()
 
     %{
       config: config,
+      history: history,
       self: OpenDevCoach.Servers.Session,
       tasks: tasks
     }
@@ -263,11 +265,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Sends a message to the AI and manages conversation history.
   """
   def chat_with_ai(state, user_message) do
-    # Store user message in history
-    AgentHistory.add_conversation("user", user_message)
+    state = add_history(state, "user", user_message)
 
     # Get recent history for context
-    recent_history = AgentHistory.get_recent_history(5)
+    recent_history = get_history(state, 8)
     current_tasks = Tasks.list_tasks()
 
     # Build context for AI
@@ -285,11 +286,21 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     end
   end
 
+  defp add_history(state, role, content) do
+    new_history = state.history ++ [%Entry{role: role, content: content}]
+    Task.start(fn -> AgentHistory.add_conversation(role, content) end)
+    %{state | history: new_history}
+  end
+
+  defp get_history(state, limit) do
+    Enum.slice(state.history, -limit..-1)
+  end
+
   @doc """
   Tests the AI configuration by sending a simple message.
   """
   def test_ai_config(state) do
-    case AI.test_configuration() do
+    case AI.test_configuration(state.config) do
       {:ok, message} ->
         {{:ok, message}, state}
 

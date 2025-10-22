@@ -6,6 +6,10 @@ defmodule OpenDevCoach.AI do
   using the ReqLLM library to communicate with various providers.
   """
 
+  require Logger
+
+  import OpenDevCoach.Helpers.Future
+
   alias OpenDevCoach.Configuration
 
   @doc """
@@ -25,32 +29,74 @@ defmodule OpenDevCoach.AI do
       {:ok, %{text: "Hello! I'm doing well, thank you for asking.", tool_calls: []}}
   """
   def chat(messages, opts \\ []) do
-    if Application.get_env(:open_dev_coach, :test_ai, false) do
-      log_ai_prompt(messages, opts)
-      {:ok, %{text: "AI prompt logged to log/ai_prompts.log (test mode enabled)", tool_calls: []}}
-    else
-      with {:ok, provider_name} <- get_configured_provider_name(),
-           api_key <- Configuration.get_config("ai_api_key"),
-           model_name <- Configuration.get_config("ai_model") do
-        model_spec = "#{provider_name}:#{model_name}"
+    case get_ai_config(opts) do
+      {:ok, config} ->
+        if Application.get_env(:open_dev_coach, :test_ai, false) do
+          Logger.info("Logging AI prompt to log/ai_prompts.log (test mode enabled)")
+          log_ai_prompt(messages, opts)
 
-        # Set the API key in memory for ReqLLM to use
-        provider_atom = String.to_atom(provider_name)
-        config_key = ReqLLM.Keys.config_key(provider_atom)
-        ReqLLM.put_key(config_key, api_key)
+          {:ok,
+           %{text: "AI prompt logged to log/ai_prompts.log (test mode enabled)", tool_calls: []}}
+        else
+          Logger.info("Sending AI prompt to #{config["ai_provider"]}")
+          provider = Map.get(config, "ai_provider")
+          api_key = Map.get(config, "ai_api_key")
+          model_name = Map.get(config, "ai_model")
 
-        case ReqLLM.generate_text(model_spec, messages, opts) do
-          {:ok, response} ->
-            text = ReqLLM.Response.text(response)
-            tool_calls = response.message.content |> Enum.filter(&(&1.type == :tool_call))
-            {:ok, %{text: text, tool_calls: tool_calls}}
+          model_spec = "#{provider}:#{model_name}"
 
-          {:error, reason} ->
-            {:error, "ReqLLM error: #{inspect(reason)}"}
+          provider_atom = String.to_atom(provider)
+          config_key = ReqLLM.Keys.config_key(provider_atom)
+          ReqLLM.put_key(config_key, api_key)
+
+          future("OpenDevCoach.AI.chat/2", "Set ReqLLM.generate_text options")
+
+          case ReqLLM.generate_text(model_spec, messages) do
+            {:ok, response} ->
+              text = ReqLLM.Response.text(response)
+              tool_calls = response.message.content |> Enum.filter(&(&1.type == :tool_call))
+              {:ok, %{text: text, tool_calls: tool_calls}}
+
+            {:error, reason} ->
+              Logger.error("ReqLLM error: #{inspect(reason)}")
+              {:error, "ReqLLM error: #{inspect(reason)}"}
+          end
         end
-      else
-        {:error, reason} -> {:error, reason}
-      end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp get_ai_config(opts) do
+    config = Keyword.get(opts, :config, %{})
+
+    with {:ok, provider} <- maybe_get_config_value(config, "ai_provider"),
+         {:ok, model} <- maybe_get_config_value(config, "ai_model"),
+         {:ok, api_key} <- maybe_get_config_value(config, "ai_api_key") do
+      complete_config = %{
+        "ai_provider" => provider,
+        "ai_model" => model,
+        "ai_api_key" => api_key
+      }
+
+      {:ok, complete_config}
+    else
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp maybe_get_config_value(config, key) do
+    case Map.get(config, key) do
+      nil ->
+        case Configuration.get_config(key) do
+          nil -> {:error, "Missing required AI configuration key: #{key}"}
+          value -> {:ok, value}
+        end
+
+      value ->
+        {:ok, value}
     end
   end
 
@@ -84,17 +130,31 @@ defmodule OpenDevCoach.AI do
     end
   end
 
+  defp get_configured_provider_name_from_config(config) do
+    provider = Map.get(config, "ai_provider")
+
+    if is_nil(provider) do
+      {:error, "No AI provider configured. Set it with `/config set ai_provider gemini`"}
+    else
+      Map.get(
+        @provider_map,
+        provider,
+        {:error, "Unknown or unsupported AI provider: #{provider}"}
+      )
+    end
+  end
+
   @doc """
-  Tests the current AI configuration by sending a simple message.
+  Tests the current AI configuration by sending a simple message. Optionally provide a config map.
 
   ## Returns
     - `{:ok, "Test successful: <response>"}` on success
     - `{:error, error_message}` on failure
   """
-  def test_configuration do
+  def test_configuration(config \\ nil) do
     messages = [%{role: "user", content: "Hello! Please respond with a brief greeting."}]
 
-    case chat(messages) do
+    case chat(messages, config: config) do
       {:ok, %{text: response}} when is_binary(response) ->
         {:ok, "Test successful: #{response}"}
 

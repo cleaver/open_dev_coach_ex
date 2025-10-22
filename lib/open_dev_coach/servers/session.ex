@@ -8,7 +8,7 @@ defmodule OpenDevCoach.Servers.Session do
 
   import OpenDevCoach.Helpers.Future
 
-  defp server, do: __MODULE__
+  defp server_name, do: __MODULE__
 
   @doc """
   Returns a child specification for the Session GenServer.
@@ -27,7 +27,7 @@ defmodule OpenDevCoach.Servers.Session do
   Starts the Session GenServer.
   """
   def start_link(opts) do
-    GenServer.start_link(__MODULE__.Server, opts, name: server())
+    GenServer.start_link(__MODULE__.Server, opts, name: server_name())
   end
 
   @doc """
@@ -37,7 +37,7 @@ defmodule OpenDevCoach.Servers.Session do
   It will gather context and call the AI system for a coaching response.
   """
   def handle_checkin(checkin) do
-    GenServer.cast(server(), {:handle_checkin, checkin})
+    GenServer.cast(server_name(), {:handle_checkin, checkin})
   end
 
   # Task Management Functions
@@ -47,7 +47,7 @@ defmodule OpenDevCoach.Servers.Session do
   """
   def add_task(description) do
     future(:add_task, "Make tasks pluggable")
-    GenServer.call(server(), {:add_task, description})
+    GenServer.call(server_name(), {:add_task, description})
   end
 
   @doc """
@@ -55,7 +55,7 @@ defmodule OpenDevCoach.Servers.Session do
   """
   def list_tasks do
     future(:list_tasks, "Make tasks pluggable")
-    GenServer.call(server(), {:list_tasks})
+    GenServer.call(server_name(), {:list_tasks})
   end
 
   @doc """
@@ -63,7 +63,7 @@ defmodule OpenDevCoach.Servers.Session do
   """
   def start_task(task_order) do
     future(:start_task, "Make tasks pluggable")
-    GenServer.call(server(), {:start_task, task_order})
+    GenServer.call(server_name(), {:start_task, task_order})
   end
 
   @doc """
@@ -71,7 +71,7 @@ defmodule OpenDevCoach.Servers.Session do
   """
   def complete_task(task_order) do
     future(:complete_task, "Make tasks pluggable")
-    GenServer.call(server(), {:complete_task, task_order})
+    GenServer.call(server_name(), {:complete_task, task_order})
   end
 
   @doc """
@@ -79,7 +79,7 @@ defmodule OpenDevCoach.Servers.Session do
   """
   def remove_task(task_order) do
     future(:remove_task, "Make tasks pluggable")
-    GenServer.call(server(), {:remove_task, task_order})
+    GenServer.call(server_name(), {:remove_task, task_order})
   end
 
   @doc """
@@ -87,7 +87,7 @@ defmodule OpenDevCoach.Servers.Session do
   """
   def backup_tasks do
     future(:backup_tasks, "Make tasks pluggable")
-    GenServer.call(server(), {:backup_tasks})
+    GenServer.call(server_name(), {:backup_tasks})
   end
 
   # Configuration Management Functions
@@ -96,42 +96,42 @@ defmodule OpenDevCoach.Servers.Session do
   Gets a configuration value by key.
   """
   def get_config(key) do
-    GenServer.call(server(), {:get_config, key})
+    GenServer.call(server_name(), {:get_config, key})
   end
 
   @doc """
   Sets a configuration key-value pair.
   """
   def set_config(key, value) do
-    GenServer.call(server(), {:set_config, key, value})
+    GenServer.call(server_name(), {:set_config, key, value})
   end
 
   @doc """
   Lists all configuration settings.
   """
   def list_configs do
-    GenServer.call(server(), {:list_configs})
+    GenServer.call(server_name(), {:list_configs})
   end
 
   @doc """
   Resets all configuration to defaults.
   """
   def reset_config do
-    GenServer.call(server(), {:reset_config})
+    GenServer.call(server_name(), {:reset_config})
   end
 
   @doc """
   Updates the session timezone.
   """
   def update_timezone(timezone) do
-    GenServer.cast(server(), {:update_timezone, timezone})
+    GenServer.cast(server_name(), {:update_timezone, timezone})
   end
 
   @doc """
   Gets the session timezone.
   """
   def get_timezone do
-    GenServer.call(server(), {:get_timezone})
+    GenServer.call(server_name(), {:get_timezone})
   end
 
   # AI Chat Functions
@@ -140,13 +140,13 @@ defmodule OpenDevCoach.Servers.Session do
   Sends a message to the AI and manages conversation history.
   """
   def chat_with_ai(user_message) do
-    GenServer.call(server(), {:chat_with_ai, user_message})
+    GenServer.call(server_name(), {:chat_with_ai, user_message})
   end
 
   @doc """
   Tests the AI configuration by sending a simple message.
   """
   def test_ai_config do
-    GenServer.call(server(), {:test_ai_config})
+    GenServer.call(server_name(), {:test_ai_config})
   end
 end
