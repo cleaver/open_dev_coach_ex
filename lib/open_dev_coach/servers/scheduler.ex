@@ -31,11 +31,11 @@ defmodule OpenDevCoach.Servers.Scheduler do
   @doc """
   Adds a new check-in to the scheduler.
 
-  ## Parameters
+  Parameters:
     - time_or_interval: Either "HH:MM" format or interval like "2h 30m"
     - description: Optional description for the check-in
 
-  ## Returns
+  Returns:
     - {:ok, checkin_id} on success
     - {:error, reason} on failure
   """

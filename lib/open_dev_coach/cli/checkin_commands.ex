@@ -46,15 +46,8 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   """
   def add_checkin(time, description) do
     case Scheduler.add_checkin(time, description) do
-      {:ok, _checkin_id} ->
-        message =
-          if description && description != "" do
-            "Check-in scheduled for #{time} with description: #{description}"
-          else
-            "Check-in scheduled for #{time}"
-          end
-
-        {:ok, message}
+      checkin_list when is_binary(checkin_list) ->
+        {:ok, checkin_list}
 
       {:error, reason} ->
         {:error, "Failed to schedule check-in: #{reason}"}
@@ -65,19 +58,12 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   Lists all scheduled check-ins.
   """
   def list_checkins(_args) do
-    checkins = Scheduler.list_checkins()
+    case Scheduler.list_checkins() do
+      checkin_list when is_binary(checkin_list) ->
+        {:ok, checkin_list}
 
-    if Enum.empty?(checkins) do
-      {:ok, "No scheduled check-ins found."}
-    else
-      checkin_list =
-        Enum.map_join(checkins, "\n", fn checkin ->
-          description = if checkin.description, do: " - #{checkin.description}", else: ""
-
-          "  #{checkin.id}. #{format_time(checkin.scheduled_at)}#{description} (#{checkin.status})"
-        end)
-
-      {:ok, "Scheduled Check-ins:\n#{checkin_list}"}
+      _ ->
+        {:error, "Error retrieving checkins."}
     end
   end
 

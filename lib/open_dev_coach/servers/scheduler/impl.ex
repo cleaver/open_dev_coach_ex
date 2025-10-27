@@ -8,75 +8,103 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
 
   require Logger
   alias OpenDevCoach.Checkins
+  alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
   alias OpenDevCoach.Servers.Session
+
+  @type scheduler_state() :: %{
+          checkins: [Checkin.t()]
+        }
 
   @doc """
   Initializes the scheduler state.
   """
   def init(_opts) do
     Logger.info("OpenDevCoach Scheduler started")
+
     # Handle missed check-ins and restore active ones from database
     handle_missed_checkins()
-    restore_checkins_from_database()
-    %{}
+    checkins = Checkins.list_scheduled_checkins()
+    restore_checkins(checkins)
+    %{checkins: checkins}
   end
 
   @doc """
   Adds a new check-in to the scheduler.
 
-  ## Parameters
+  Parameters:
     - state: Current scheduler state
     - time_or_interval: Either "HH:MM" format or interval like "2h 30m"
     - description: Optional description for the check-in
 
-  ## Returns
+  Returns:
     - {{:ok, checkin_id}, new_state} on success
     - {{:error, reason}, state} on failure
   """
   def add_checkin(state, time_or_interval, description \\ nil) do
     case parse_time_or_interval(time_or_interval) do
       {:ok, next_time} ->
-        case Checkins.create_checkin(%{
-               scheduled_at: next_time,
-               description: description,
-               status: "SCHEDULED"
-             }) do
-          {:ok, checkin} ->
-            schedule_checkin(checkin)
-            {{:ok, checkin.id}, state}
+        new_state = add_checkin_to_state(state, next_time, description)
 
-          {:error, changeset} ->
-            {{:error, "Failed to create check-in: #{inspect(changeset.errors)}"}, state}
-        end
+        Task.start(fn ->
+          Checkins.create_checkin(%{
+            scheduled_at: next_time,
+            description: description,
+            status: "SCHEDULED"
+          })
+        end)
+
+        list_checkins(new_state)
 
       {:error, reason} ->
         {{:error, reason}, state}
     end
   end
 
+  defp add_checkin_to_state(state, next_time, description) do
+    checkin = %Checkin{scheduled_at: next_time, description: description, status: "SCHEDULED"}
+    %{state | checkins: Map.get(state, :checkins, []) ++ [checkin]}
+  end
+
   @doc """
   Lists all scheduled check-ins.
 
-  ## Parameters
+  Parameters:
     - state: Current scheduler state
 
-  ## Returns
+  Returns:
     - {checkins, state} where checkins is the list of active check-ins
   """
   def list_checkins(state) do
-    checkins = Checkins.list_active_checkins()
-    {checkins, state}
+    checkins_list =
+      state
+      |> Map.get(:checkins, [])
+      |> format_checkins_list()
+
+    {checkins_list, state}
+  end
+
+  defp format_checkins_list([]),
+    do: "No scheduled check-ins found. Add one with `/checkin add <time> [description]`"
+
+  defp format_checkins_list(checkins) do
+    checkins
+    |> Enum.sort_by(& &1.scheduled_at)
+    |> Enum.with_index()
+    |> Enum.map_join("\n", fn {checkin, index} ->
+      "  #{index + 1}. #{Timex.format!(checkin.scheduled_at, "%Y-%m-%d %I:%M%p", :strftime)}#{checkin.description} (#{checkin.status})"
+    end)
+    |> then(&"Scheduled Check-ins:\n#{&1}")
   end
 
   @doc """
   Removes a scheduled check-in by ID.
 
-  ## Parameters
+  Parameters:
     - state: Current scheduler state
     - checkin_id: ID of the check-in to remove
 
-  ## Returns
+  Returns:
     - {{:ok, message}, new_state} on success
     - {{:error, reason}, state} on failure
   """
@@ -97,11 +125,11 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   @doc """
   Handles a check-in trigger from the timer.
 
-  ## Parameters
+  Parameters:
     - state: Current scheduler state
     - checkin_id: ID of the check-in that was triggered
 
-  ## Returns
+  Returns:
     - {new_state, new_state} (state doesn't change for check-in handling)
   """
   def handle_checkin_trigger(state, checkin_id) do
@@ -127,8 +155,6 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     end
   end
 
-  # Private Functions
-
   defp handle_missed_checkins do
     {update_count, _} = Checkins.mark_past_scheduled_checkins_as_skipped()
 
@@ -137,8 +163,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     end
   end
 
-  defp restore_checkins_from_database do
-    scheduled_checkins = Checkins.list_scheduled_checkins()
+  defp restore_checkins(scheduled_checkins) do
     Enum.each(scheduled_checkins, &schedule_checkin/1)
     Logger.info("Restored #{length(scheduled_checkins)} scheduled check-ins from database")
   end

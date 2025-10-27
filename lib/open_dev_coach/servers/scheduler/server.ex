@@ -21,13 +21,11 @@ defmodule OpenDevCoach.Servers.Scheduler.Server do
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call(:list_checkins, _from, state) do
     {result, new_state} = Impl.list_checkins(state)
     {:reply, result, new_state}
   end
 
-  @impl true
   def handle_call({:remove_checkin, checkin_id}, _from, state) do
     {result, new_state} = Impl.remove_checkin(state, checkin_id)
     {:reply, result, new_state}

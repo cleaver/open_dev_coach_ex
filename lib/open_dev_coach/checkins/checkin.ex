@@ -9,6 +9,14 @@ defmodule OpenDevCoach.Checkins.Checkin do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t() :: %__MODULE__{
+          scheduled_at: DateTime.t(),
+          status: String.t(),
+          description: String.t(),
+          last_triggered_at: DateTime.t(),
+          completed_at: DateTime.t()
+        }
+
   schema "checkins" do
     field(:scheduled_at, :utc_datetime)
     field(:status, :string, default: "SCHEDULED")
