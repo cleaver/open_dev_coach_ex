@@ -17,9 +17,9 @@ defmodule OpenDevCoach.AI.IntegrationTest do
       assert {:error, _} = Session.chat_with_ai("Hello")
 
       # 2. Configure Gemini provider
-      Configuration.set_config("ai_provider", "gemini")
+      Configuration.set_config("ai_provider", "google")
       Configuration.set_config("ai_api_key", "test_key")
-      Configuration.set_config("ai_model", "gemini-pro")
+      Configuration.set_config("ai_model", "gemini-2.5-flash")
 
       # 3. Test that provider is now recognized
       {:ok, provider_name} = OpenDevCoach.AI.get_configured_provider_name()
@@ -44,7 +44,7 @@ defmodule OpenDevCoach.AI.IntegrationTest do
 
     test "ai_factory_routing" do
       # Test that AI factory properly routes to configured provider
-      Configuration.set_config("ai_provider", "gemini")
+      Configuration.set_config("ai_provider", "google")
       Configuration.set_config("ai_api_key", "test_key")
 
       result = OpenDevCoach.AI.chat([%{role: "user", content: "Hello"}])

@@ -10,6 +10,7 @@ defmodule OpenDevCoach.AI do
 
   import OpenDevCoach.Helpers.Future
 
+  alias OpenDevCoach.Ai.ModelValidator
   alias OpenDevCoach.Configuration
 
   @doc """
@@ -71,9 +72,9 @@ defmodule OpenDevCoach.AI do
   defp get_ai_config(opts) do
     config = Keyword.get(opts, :config, %{})
 
-    with {:ok, provider} <- maybe_get_config_value(config, "ai_provider"),
-         {:ok, model} <- maybe_get_config_value(config, "ai_model"),
-         {:ok, api_key} <- maybe_get_config_value(config, "ai_api_key") do
+    with {:ok, provider} <- get_ai_provider(config),
+         {:ok, model} <- get_ai_model(config, provider),
+         {:ok, api_key} <- get_ai_api_key(config) do
       complete_config = %{
         "ai_provider" => provider,
         "ai_model" => model,
@@ -87,16 +88,60 @@ defmodule OpenDevCoach.AI do
     end
   end
 
-  defp maybe_get_config_value(config, key) do
-    case Map.get(config, key) do
+  defp get_ai_provider(config) when is_map_key(config, "ai_provider") do
+    Map.get(config, "ai_provider")
+    |> validate_ai_provider()
+  end
+
+  defp get_ai_provider(_config) do
+    Configuration.get_config("ai_provider")
+    |> validate_ai_provider()
+  end
+
+  defp validate_ai_provider(provider) do
+    if ModelValidator.validate_provider(provider) do
+      {:ok, provider}
+    else
+      {:error, "Unknown or unsupported AI provider: #{provider}"}
+    end
+  end
+
+  defp get_ai_model(config, provider) when is_map_key(config, "ai_model") do
+    Map.get(config, "ai_model")
+    |> validate_ai_model(provider)
+  end
+
+  defp get_ai_model(_config, provider) do
+    Configuration.get_config("ai_model")
+    |> validate_ai_model(provider)
+  end
+
+  defp validate_ai_model(value, provider) do
+    model_spec = "#{provider}:#{value}"
+
+    if ModelValidator.validate_model(model_spec) do
+      {:ok, model_spec}
+    else
+      {:error, "Unknown or unsupported AI model: #{model_spec}"}
+    end
+  end
+
+  defp get_ai_api_key(config) do
+    case Map.get(config, "ai_api_key") do
       nil ->
-        case Configuration.get_config(key) do
-          nil -> {:error, "Missing required AI configuration key: #{key}"}
-          value -> {:ok, value}
-        end
+        Configuration.get_config("ai_api_key")
+        |> validate_ai_api_key()
 
       value ->
         {:ok, value}
+    end
+  end
+
+  defp validate_ai_api_key(value) do
+    if is_binary(value) and String.length(value) > 0 do
+      {:ok, value}
+    else
+      {:error, "Missing required AI configuration key: ai_api_key"}
     end
   end
 
@@ -106,41 +151,20 @@ defmodule OpenDevCoach.AI do
   ## Returns
     - `{:ok, provider_name}` (e.g., "google") or `{:error, reason}`
   """
-  @provider_map %{
-    "gemini" => {:ok, "google"},
-    "openai" => {:ok, "openai"},
-    "anthropic" => {:ok, "anthropic"},
-    "groq" => {:ok, "groq"},
-    "xai" => {:ok, "xai"},
-    "openrouter" => {:ok, "openrouter"},
-    "ollama" => {:error, "Ollama provider not yet supported by ReqLLM"}
-  }
-
   def get_configured_provider_name do
     provider = Configuration.get_config("ai_provider")
 
     if is_nil(provider) do
       {:error, "No AI provider configured. Set it with `/config set ai_provider gemini`"}
     else
-      Map.get(
-        @provider_map,
-        provider,
-        {:error, "Unknown or unsupported AI provider: #{provider}"}
-      )
-    end
-  end
+      available_providers = ModelValidator.list_providers()
+      provider_atom = String.to_atom(provider)
 
-  defp get_configured_provider_name_from_config(config) do
-    provider = Map.get(config, "ai_provider")
-
-    if is_nil(provider) do
-      {:error, "No AI provider configured. Set it with `/config set ai_provider gemini`"}
-    else
-      Map.get(
-        @provider_map,
-        provider,
+      if provider_atom in available_providers do
+        {:ok, provider}
+      else
         {:error, "Unknown or unsupported AI provider: #{provider}"}
-      )
+      end
     end
   end
 
@@ -199,10 +223,6 @@ defmodule OpenDevCoach.AI do
         {to_string(key), convert_value_to_serializable(value)}
     end)
     |> Enum.into(%{})
-  end
-
-  defp convert_opts_to_serializable(opts) do
-    convert_value_to_serializable(opts)
   end
 
   # Convert individual values to JSON-serializable format
