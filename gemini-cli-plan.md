@@ -18,8 +18,8 @@ This phase focuses on setting up the essential boilerplate, database, and the ma
     *   Run `mix ecto.create` and `mix ecto.migrate`.
 
 2.  **Application Supervision:**
-    *   Create the main `OpenDevCoach.Session` GenServer to manage application state.
-    *   Update `lib/open_dev_coach/application.ex` to start `OpenDevCoach.Repo`, `OpenDevCoach.Session`, and `TioComodo.Repl.Server` in the supervision tree.
+    *   Create the main `OpenDevCoach.Servers.Session` GenServer to manage application state.
+    *   Update `lib/open_dev_coach/application.ex` to start `OpenDevCoach.Repo`, `OpenDevCoach.Servers.Session`, and `TioComodo.Repl.Server` in the supervision tree.
     *   Implement the shutdown listener process as recommended by `tio_comodo` docs to ensure a clean exit.
 
 3.  **Terminal Interface (REPL):**
@@ -30,7 +30,7 @@ This phase focuses on setting up the essential boilerplate, database, and the ma
 
 4.  **Command Logic Delegation:**
     *   The functions in `OpenDevCoach.CLI.Commands` will be a thin layer responsible for parsing command arguments.
-    *   The core application logic will reside in the `OpenDevCoach.Session` GenServer. The command handlers in `CLI.Commands` will make calls (`GenServer.call`) to the `Session` process to execute tasks, manage configuration, etc.
+    *   The core application logic will reside in the `OpenDevCoach.Servers.Session` GenServer. The command handlers in `CLI.Commands` will make calls to the `OpenDevCoach.Servers.Session` API to execute tasks, manage configuration, etc.
 
 ## Phase 2: Task & Configuration Management
 
@@ -40,7 +40,7 @@ This phase implements the core productivity features of the application.
     *   Create an Ecto context module: `OpenDevCoach.Tasks`.
     *   Implement functions in the `Tasks` context for all task operations (list, add, update, remove).
     *   Implement the `/task` subcommands as functions in `OpenDevCoach.CLI.Commands`.
-    *   These command functions will parse arguments (e.g., the task description or task number) and call the `OpenDevCoach.Session` GenServer to perform the requested task operation.
+    *   These command functions will parse arguments (e.g., the task description or task number) and call the `OpenDevCoach.Servers.Session` GenServer to perform the requested task operation.
     *   Implement the logic for `/task start` to also set any other `IN-PROGRESS` tasks to `ON-HOLD`.
     *   Implement `/task backup` to query all tasks and write them to a `task_backup.md` file.
 
@@ -64,7 +64,7 @@ This phase focuses on connecting the application to various AI services.
     *   Create a factory module, `OpenDevCoach.AI`, that reads the `ai_provider` from the configuration and delegates calls to the appropriate provider module.
 
 3.  **AI Integration:**
-    *   The `catchall_handler` function in `OpenDevCoach.CLI.Commands` will pass the user's input to the `OpenDevCoach.Session` GenServer.
+    *   The `catchall_handler` function in `OpenDevCoach.CLI.Commands` will pass the user's input to the `OpenDevCoach.Servers.Session` GenServer.
     *   The `Session` GenServer will then call the `OpenDevCoach.AI.chat/2` function, manage the conversation history in the `agent_history` table, and return the response.
     *   Implement the `/config test` command to send a simple "Hello" message to the configured AI and report success or failure.
 
@@ -74,7 +74,7 @@ This phase makes the application proactive by introducing scheduled check-ins an
 
 1.  **Check-in Scheduler:**
     *   Note that checkins are scheduled for one point in time only. Recurring checkins may be added later.
-    *   Create a `OpenDevCoach.Scheduler` GenServer and add it to the supervision tree.
+    *   Create a `OpenDevCoach.Servers.Scheduler` GenServer and add it to the supervision tree.
     *   The `Scheduler` will be responsible for managing scheduled check-ins using `Process.send_after/3`.
     *   When a check-in is triggered, the `Scheduler` will send a `:checkin` message to the `Session` process.
     *   Implement the `/checkin` commands in `OpenDevCoach.CLI.Commands` to interact with the `Scheduler` GenServer.
@@ -105,3 +105,19 @@ This final phase focuses on improving the user experience and adding more "coach
     *   Improve the `/help` command to be more detailed.
     *   Add module (`@moduledoc`) and function (`@doc`) documentation.
     *   Update the `README.md` with setup and usage instructions.
+
+## Additional Notes
+
+### GenServers
+
+With genservers, we always follow Pragdave's pattern to separate API, server, and implementation.
+
+An example genserver `kv` would be implemented as follows:
+
+lib
+└── open_dev_coach
+    └── servers
+        ├── kv
+        │   ├── impl.ex     ("Application implementation")
+        │   └── server.ex   ("GenServer implementation")
+        └── kv.ex           (API)
