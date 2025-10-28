@@ -127,6 +127,7 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
     - [ ] tasks
     - [ ] checkins
     - [ ] config
+    - [ ] agent history
 
 ### [ADD-1] Archive Tasks
 - [ ] Add a task archive status.
