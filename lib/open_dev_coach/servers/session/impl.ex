@@ -62,7 +62,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Adds a new task to the system.
   """
-  @spec add_task(map(), String.t()) :: {String.t(), map()}
+  @spec add_task(map(), String.t()) :: {[Task.t()], map()}
   def add_task(state, description) do
     new_state = add_task_to_state(state, description)
     Task.start(fn -> Tasks.add_task(description) end)
@@ -77,30 +77,27 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Lists all tasks in the system.
   """
-  @spec list_tasks(map()) :: {String.t(), map()}
+  @spec list_tasks(map()) :: {[Task.t()], map()}
   def list_tasks(state) do
-    task_list =
-      state
-      |> Map.get(:tasks, [])
-      |> format_task_list()
-
-    {task_list, state}
+    tasks = Map.get(state, :tasks, [])
+    {tasks, state}
   end
 
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
   @spec start_task(session_state(), integer()) ::
-          {String.t(), session_state()} | {:error, String.t()}
+          {{:ok, [Task.t()]}, session_state()} | {{:error, String.t()}, session_state()}
   def start_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
       {:ok, new_state} ->
         Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end)
-        list_tasks(new_state)
+        {tasks, _} = list_tasks(new_state)
+        {{:ok, tasks}, new_state}
 
       {:error, reason} ->
         Logger.error("Failed to start task: #{reason}")
-        {:error, reason}
+        {{:error, reason}, state}
     end
   end
 
@@ -199,13 +196,15 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Gets a configuration value by key.
   """
+  @spec get_config(session_state(), String.t()) ::
+          {{:ok, String.t()} | {:error, String.t()}, session_state()}
   def get_config(state, key) do
     case Map.get(state.config, key, nil) do
       nil ->
-        {{:ok, "Configuration key '#{key}' not found"}, state}
+        {{:error, key}, state}
 
       value ->
-        {{:ok, "#{key}: #{value}"}, state}
+        {{:ok, {key, value}}, state}
     end
   end
 
@@ -240,9 +239,9 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Lists all configuration settings.
   """
+  @spec list_configs(session_state()) :: {{:ok, map()}, session_state()}
   def list_configs(state) do
-    message = format_config_list(state.config)
-    {{:ok, message}, state}
+    {{:ok, state.config}, state}
   end
 
   @doc """
@@ -365,38 +364,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     ReplServer.output(message)
   end
 
-  @spec format_task_list([Task.t()]) :: String.t()
-  defp format_task_list(tasks) do
-    case tasks do
-      [] ->
-        "No tasks found. Add one with `/task add <description>`"
-
-      _ ->
-        tasks
-        |> Enum.with_index(1)
-        |> Enum.map_join("\n", fn {task, index} ->
-          status_emoji = get_status_emoji(task.status)
-          "  #{index}. #{status_emoji} #{task.description} [#{task.status}]"
-        end)
-        |> then(&"Your Tasks:\n#{&1}")
-    end
-  end
-
-  defp get_status_emoji(status) do
-    case status do
-      # Yellow circle
-      "PENDING" -> "\e[33m●\e[0m"
-      # Blue circle
-      "IN-PROGRESS" -> "\e[34m●\e[0m"
-      # Magenta circle
-      "ON-HOLD" -> "\e[35m●\e[0m"
-      # Green circle
-      "COMPLETED" -> "\e[32m●\e[0m"
-      # White circle
-      _ -> "\e[37m●\e[0m"
-    end
-  end
-
   defp create_task_backup(state, file_write_fn) do
     tasks = Map.get(state, :tasks, [])
     filename = "task_backup_#{Date.utc_today()}.md"
@@ -415,23 +382,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
       {:error, reason} -> {:error, "Failed to write backup file: #{reason}"}
     end
   end
-
-  defp format_config_list(configs) do
-    case configs do
-      configs when map_size(configs) == 0 ->
-        "No configurations set. Use `/config set <key> <value>` to add some."
-
-      _ ->
-        configs
-        |> Enum.map_join("\n", fn {key, value} ->
-          "  #{key}: #{maybe_redact_value(key, value)}"
-        end)
-        |> then(&"Current Configurations:\n#{&1}")
-    end
-  end
-
-  defp maybe_redact_value("ai_api_key", _value), do: "***"
-  defp maybe_redact_value(_key, value), do: value
 
   defp build_ai_context(recent_history, current_tasks) do
     # Build a context string for the AI

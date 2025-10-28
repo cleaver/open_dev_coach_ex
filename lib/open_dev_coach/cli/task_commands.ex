@@ -6,6 +6,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   adding, listing, starting, completing, removing, and backing up tasks.
   """
 
+  alias OpenDevCoach.CLI.Views
   alias OpenDevCoach.Servers.Session
 
   @doc """
@@ -42,8 +43,11 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def add(description) when byte_size(description) > 0 do
     case Session.add_task(description) do
-      {:ok, message} -> {:ok, message}
-      {:error, message} -> {:error, message}
+      {:ok, tasks} ->
+        {:ok, Views.format_tasks(tasks)}
+
+      {:error, message} ->
+        {:error, message}
     end
   end
 
@@ -54,8 +58,11 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def list(_args) do
     case Session.list_tasks() do
-      {:ok, message} -> {:ok, message}
-      {:error, message} -> {:error, message}
+      {:ok, tasks} ->
+        {:ok, Views.format_tasks(tasks)}
+
+      {:error, message} ->
+        {:error, message}
     end
   end
 
@@ -66,8 +73,11 @@ defmodule OpenDevCoach.CLI.TaskCommands do
     case parse_task_number(task_number) do
       {:ok, task_order} ->
         case Session.start_task(task_order) do
-          {:ok, message} -> {:ok, message}
-          {:error, message} -> {:error, message}
+          {:ok, tasks} ->
+            {:ok, Views.format_tasks(tasks)}
+
+          {:error, message} ->
+            {:error, message}
         end
 
       {:error, message} ->

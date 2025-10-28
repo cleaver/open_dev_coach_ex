@@ -30,50 +30,47 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "adds a new task to the state", %{state: state} do
-      {message, new_state} = Impl.add_task(state, "New task description")
+      {tasks, new_state} = Impl.add_task(state, "New task description")
 
       assert length(new_state.tasks) == 1
       assert hd(new_state.tasks).description == "New task description"
       assert hd(new_state.tasks).status == "PENDING"
-      assert message =~ "Your Tasks:"
+      assert length(tasks) == 1
+      assert hd(tasks).description == "New task description"
     end
 
-    test "returns formatted task list", %{state: state} do
-      {message, _new_state} = Impl.add_task(state, "Test task")
+    test "returns task list", %{state: state} do
+      {tasks, _new_state} = Impl.add_task(state, "Test task")
 
-      assert message =~ "Your Tasks:"
-      assert message =~ "Test task"
-      assert message =~ "[PENDING]"
+      assert is_list(tasks)
+      assert length(tasks) == 1
+      assert hd(tasks).description == "Test task"
+      assert hd(tasks).status == "PENDING"
     end
   end
 
   describe "list_tasks/1" do
-    test "returns message for empty task list" do
+    test "returns empty list for empty task list" do
       state = %{tasks: []}
-      {message, returned_state} = Impl.list_tasks(state)
+      {tasks, returned_state} = Impl.list_tasks(state)
 
-      assert message == "No tasks found. Add one with `/task add <description>`"
+      assert tasks == []
       assert returned_state == state
     end
 
-    test "returns formatted task list with tasks" do
-      tasks = [
+    test "returns task list" do
+      task_list = [
         %TaskSchema{description: "First task", status: "PENDING"},
         %TaskSchema{description: "Second task", status: "IN-PROGRESS"},
         %TaskSchema{description: "Third task", status: "COMPLETED"}
       ]
 
-      state = %{tasks: tasks}
+      state = %{tasks: task_list}
 
-      {message, returned_state} = Impl.list_tasks(state)
+      {tasks, returned_state} = Impl.list_tasks(state)
 
-      assert message =~ "Your Tasks:"
-      assert message =~ "First task"
-      assert message =~ "Second task"
-      assert message =~ "Third task"
-      assert message =~ "[PENDING]"
-      assert message =~ "[IN-PROGRESS]"
-      assert message =~ "[COMPLETED]"
+      assert length(tasks) == 3
+      assert tasks == task_list
       assert returned_state == state
     end
   end
@@ -91,9 +88,10 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "starts a task by ordinal number", %{state: state} do
-      {_message, new_state} = Impl.start_task(state, 2)
+      {{:ok, tasks}, new_state} = Impl.start_task(state, 2)
 
       assert Enum.at(new_state.tasks, 1).status == "IN-PROGRESS"
+      assert length(tasks) == 3
     end
 
     test "puts other IN-PROGRESS tasks on hold", %{state: state} do
@@ -103,22 +101,25 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
         | tasks: List.update_at(state.tasks, 0, &%{&1 | status: "IN-PROGRESS"})
       }
 
-      {_message, new_state} = Impl.start_task(state_with_progress, 2)
+      {{:ok, tasks}, new_state} = Impl.start_task(state_with_progress, 2)
 
       assert Enum.at(new_state.tasks, 0).status == "ON-HOLD"
       assert Enum.at(new_state.tasks, 1).status == "IN-PROGRESS"
+      assert length(tasks) == 3
     end
 
-    test "returns original state for invalid task ordinal", %{state: state} do
-      returned_state = Impl.start_task(state, 0)
+    test "returns error for invalid task ordinal", %{state: state} do
+      {{:error, reason}, new_state} = Impl.start_task(state, 0)
 
-      assert returned_state == {:error, "Task not found"}
+      assert reason == "Task not found"
+      assert new_state == state
     end
 
     test "returns error for task ordinal out of range", %{state: state} do
-      returned_state = Impl.start_task(state, 10)
+      {{:error, reason}, new_state} = Impl.start_task(state, 10)
 
-      assert returned_state == {:error, "Task not found"}
+      assert reason == "Task not found"
+      assert new_state == state
     end
   end
 
@@ -180,16 +181,17 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "returns configuration value when key exists", %{state: state} do
-      {{:ok, message}, returned_state} = Impl.get_config(state, "timezone")
+      {{:ok, {key, value}}, returned_state} = Impl.get_config(state, "timezone")
 
-      assert message == "timezone: America/New_York"
+      assert key == "timezone"
+      assert value == "America/New_York"
       assert returned_state == state
     end
 
-    test "returns not found message when key doesn't exist", %{state: state} do
-      {{:ok, message}, returned_state} = Impl.get_config(state, "nonexistent")
+    test "returns error when key doesn't exist", %{state: state} do
+      {{:error, key}, returned_state} = Impl.get_config(state, "nonexistent")
 
-      assert message == "Configuration key 'nonexistent' not found"
+      assert key == "nonexistent"
       assert returned_state == state
     end
   end
@@ -216,32 +218,22 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
   end
 
   describe "list_configs/1" do
-    test "returns message for empty configuration" do
+    test "returns empty map for empty configuration" do
       state = %{config: %{}}
-      {{:ok, message}, returned_state} = Impl.list_configs(state)
+      {{:ok, configs}, returned_state} = Impl.list_configs(state)
 
-      assert message == "No configurations set. Use `/config set <key> <value>` to add some."
+      assert configs == %{}
       assert returned_state == state
     end
 
-    test "returns formatted configuration list" do
+    test "returns configuration map" do
       config = %{"timezone" => "America/New_York", "ai_model" => "gpt-4"}
       state = %{config: config}
-      {{:ok, message}, returned_state} = Impl.list_configs(state)
+      {{:ok, configs}, returned_state} = Impl.list_configs(state)
 
-      assert message =~ "Current Configurations:"
-      assert message =~ "timezone: America/New_York"
-      assert message =~ "ai_model: gpt-4"
-      assert returned_state == state
-    end
-
-    test "redacts sensitive configuration values" do
-      config = %{"ai_api_key" => "secret-key", "timezone" => "America/New_York"}
-      state = %{config: config}
-      {{:ok, message}, returned_state} = Impl.list_configs(state)
-
-      assert message =~ "ai_api_key: ***"
-      assert message =~ "timezone: America/New_York"
+      assert configs == config
+      assert configs["timezone"] == "America/New_York"
+      assert configs["ai_model"] == "gpt-4"
       assert returned_state == state
     end
   end

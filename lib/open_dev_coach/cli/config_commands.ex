@@ -6,6 +6,7 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   logic to the Session GenServer.
   """
 
+  alias OpenDevCoach.CLI.Views
   alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.Servers.Session
 
@@ -27,8 +28,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def set_config(key, value) do
     case Session.set_config(key, value) do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, message} ->
+        {:ok, Views.format_config_message(message)}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -37,8 +41,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def get_config(key) do
     case Session.get_config(key) do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, {key, value}} ->
+        {:ok, Views.format_config(key, value)}
+
+      {:error, key} ->
+        {:ok, Views.format_config_not_found(key)}
     end
   end
 
@@ -47,8 +54,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def list_configs do
     case Session.list_configs() do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, configs} ->
+        {:ok, Views.format_configs(configs)}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -57,8 +67,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def reset_config do
     case Session.reset_config() do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, message} ->
+        {:ok, Views.format_config_message(message)}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -83,8 +96,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def test_config do
     case Session.test_ai_config() do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, message} ->
+        {:ok, message}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 end

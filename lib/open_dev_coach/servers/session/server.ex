@@ -22,22 +22,22 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   @impl true
   def handle_call({:add_task, description}, _from, state) do
-    {task_list, new_state} = Impl.add_task(state, description)
-    {:reply, {:ok, task_list}, new_state}
+    {tasks, new_state} = Impl.add_task(state, description)
+    {:reply, {:ok, tasks}, new_state}
   end
 
   def handle_call({:list_tasks}, _from, state) do
-    {task_list, new_state} = Impl.list_tasks(state)
-    {:reply, {:ok, task_list}, new_state}
+    {tasks, new_state} = Impl.list_tasks(state)
+    {:reply, {:ok, tasks}, new_state}
   end
 
   def handle_call({:start_task, task_order}, _from, state) do
     case Impl.start_task(state, task_order) do
-      {:error, reason} ->
-        {:reply, {:error, "Failed to start task: #{reason}"}, state}
+      {{:error, reason}, new_state} ->
+        {:reply, {:error, reason}, new_state}
 
-      {task_list, new_state} ->
-        {:reply, {:ok, task_list}, new_state}
+      {{:ok, tasks}, new_state} ->
+        {:reply, {:ok, tasks}, new_state}
     end
   end
 
@@ -60,7 +60,14 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   def handle_call({:get_config, key}, _from, state) do
     {result, new_state} = Impl.get_config(state, key)
-    {:reply, result, new_state}
+
+    reply =
+      case result do
+        {:ok, {key, value}} -> {:ok, {key, value}}
+        {:error, key} -> {:error, key}
+      end
+
+    {:reply, reply, new_state}
   end
 
   def handle_call({:set_config, key, value}, _from, state) do
@@ -69,8 +76,8 @@ defmodule OpenDevCoach.Servers.Session.Server do
   end
 
   def handle_call({:list_configs}, _from, state) do
-    {result, new_state} = Impl.list_configs(state)
-    {:reply, result, new_state}
+    {{:ok, configs}, new_state} = Impl.list_configs(state)
+    {:reply, {:ok, configs}, new_state}
   end
 
   def handle_call({:reset_config}, _from, state) do
