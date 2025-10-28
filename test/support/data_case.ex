@@ -29,32 +29,20 @@ defmodule OpenDevCoach.DataCase do
   end
 
   setup tags do
-    OpenDevCoach.DataCase.setup_sandbox(tags)
-    :ok
-  end
-
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OpenDevCoach.Repo)
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(OpenDevCoach.Repo, shared: not tags[:async])
+    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
 
     servers_to_allow = [OpenDevCoach.Servers.Session, OpenDevCoach.Servers.Scheduler]
 
     Enum.each(servers_to_allow, fn server ->
-      pid = Process.whereis(server)
+      server_pid = Process.whereis(server)
 
-      if pid do
-        Ecto.Adapters.SQL.Sandbox.allow(OpenDevCoach.Repo, self(), pid)
+      if server_pid do
+        Ecto.Adapters.SQL.Sandbox.allow(OpenDevCoach.Repo, pid, server_pid)
       end
     end)
 
     :ok
-  end
-
-  @doc """
-  Sets up the sandbox based on the test tags.
-  """
-  def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(OpenDevCoach.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 
   @doc """

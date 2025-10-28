@@ -1,2 +1,2 @@
-ExUnit.start(max_cases: 1)
+ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(OpenDevCoach.Repo, :manual)
