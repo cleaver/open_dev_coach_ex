@@ -124,7 +124,7 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 ### [ADD-0] UUIDs
 - [ ] Switch everything to UUIDs
-    - [ ] tasks
+    - [x] tasks
     - [ ] checkins
     - [ ] config
     - [ ] agent history

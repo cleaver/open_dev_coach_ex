@@ -35,7 +35,7 @@ defmodule OpenDevCoach.Tasks do
   @doc """
   Retrieves a task by its ID.
   """
-  def get_task(id) when is_integer(id) do
+  def get_task(id) when is_binary(id) do
     case Repo.get(Task, id) do
       nil -> {:error, "Task not found"}
       task -> {:ok, task}
@@ -63,7 +63,7 @@ defmodule OpenDevCoach.Tasks do
   Updates the status of a task. When setting status to "IN-PROGRESS",
   automatically puts all other IN-PROGRESS tasks on hold.
   """
-  def update_task_status(task_id, new_status) when is_integer(task_id) do
+  def update_task_status(task_id, new_status) when is_binary(task_id) do
     Repo.transaction(fn ->
       # If setting to IN-PROGRESS, put other tasks on hold
       if new_status == "IN-PROGRESS" do
@@ -101,8 +101,8 @@ defmodule OpenDevCoach.Tasks do
   @doc """
   Removes a task by its ID.
   """
-  @spec remove_task(integer()) :: {:ok, Task.t()} | {:error, String.t()}
-  def remove_task(id) when is_integer(id) do
+  @spec remove_task(binary()) :: {:ok, Task.t()} | {:error, String.t()}
+  def remove_task(id) when is_binary(id) do
     case Repo.get(Task, id) do
       nil -> {:error, "Task not found"}
       task -> Repo.delete(task)

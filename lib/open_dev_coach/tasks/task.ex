@@ -7,12 +7,14 @@ defmodule OpenDevCoach.Tasks.Task do
   import Ecto.Changeset
 
   @type t() :: %__MODULE__{
+          id: binary(),
           description: String.t(),
           status: String.t(),
           started_at: DateTime.t(),
           completed_at: DateTime.t()
         }
 
+  @primary_key {:id, :binary_id, autogenerate: true}
   schema "tasks" do
     field(:description, :string)
     field(:status, :string, default: "PENDING")
