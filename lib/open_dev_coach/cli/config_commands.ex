@@ -6,7 +6,7 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   logic to the Session GenServer.
   """
 
-  alias OpenDevCoach.CLI.Views
+  alias OpenDevCoach.CLI.Views.ConfigView
   alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.Servers.Session
 
@@ -29,7 +29,7 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   def set_config(key, value) do
     case Session.set_config(key, value) do
       {:ok, message} ->
-        {:ok, Views.format_config_message(message)}
+        {:ok, ConfigView.format_message(message)}
 
       {:error, reason} ->
         {:error, reason}
@@ -42,10 +42,10 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   def get_config(key) do
     case Session.get_config(key) do
       {:ok, {key, value}} ->
-        {:ok, Views.format_config(key, value)}
+        {:ok, ConfigView.format_single(key, value)}
 
       {:error, key} ->
-        {:ok, Views.format_config_not_found(key)}
+        {:ok, ConfigView.format_not_found(key)}
     end
   end
 
@@ -55,7 +55,7 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   def list_configs do
     case Session.list_configs() do
       {:ok, configs} ->
-        {:ok, Views.format_configs(configs)}
+        {:ok, ConfigView.format(configs)}
 
       {:error, reason} ->
         {:error, reason}
@@ -68,7 +68,7 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   def reset_config do
     case Session.reset_config() do
       {:ok, message} ->
-        {:ok, Views.format_config_message(message)}
+        {:ok, ConfigView.format_message(message)}
 
       {:error, reason} ->
         {:error, reason}

@@ -44,25 +44,28 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   def add_checkin(state, time_or_interval, description \\ nil) do
     case parse_time_or_interval(time_or_interval) do
       {:ok, next_time} ->
-        new_state = add_checkin_to_state(state, next_time, description)
+        # Create checkin in database first to get an ID
+        case Checkins.create_checkin(%{
+               scheduled_at: next_time,
+               description: description,
+               status: "SCHEDULED"
+             }) do
+          {:ok, checkin} ->
+            new_state = add_checkin_to_state(state, checkin)
+            schedule_checkin(checkin)
+            {{:ok, checkin.id}, new_state}
 
-        Task.start(fn ->
-          Checkins.create_checkin(%{
-            scheduled_at: next_time,
-            description: description,
-            status: "SCHEDULED"
-          })
-        end)
-
-        list_checkins(new_state)
+          {:error, changeset} ->
+            reason = "Failed to create checkin: #{inspect(changeset.errors)}"
+            {{:error, reason}, state}
+        end
 
       {:error, reason} ->
         {{:error, reason}, state}
     end
   end
 
-  defp add_checkin_to_state(state, next_time, description) do
-    checkin = %Checkin{scheduled_at: next_time, description: description, status: "SCHEDULED"}
+  defp add_checkin_to_state(state, checkin) do
     %{state | checkins: Map.get(state, :checkins, []) ++ [checkin]}
   end
 
@@ -76,25 +79,8 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     - {checkins, state} where checkins is the list of active check-ins
   """
   def list_checkins(state) do
-    checkins_list =
-      state
-      |> Map.get(:checkins, [])
-      |> format_checkins_list()
-
-    {checkins_list, state}
-  end
-
-  defp format_checkins_list([]),
-    do: "No scheduled check-ins found. Add one with `/checkin add <time> [description]`"
-
-  defp format_checkins_list(checkins) do
-    checkins
-    |> Enum.sort_by(& &1.scheduled_at)
-    |> Enum.with_index()
-    |> Enum.map_join("\n", fn {checkin, index} ->
-      "  #{index + 1}. #{Timex.format!(checkin.scheduled_at, "%Y-%m-%d %I:%M%p", :strftime)}#{checkin.description} (#{checkin.status})"
-    end)
-    |> then(&"Scheduled Check-ins:\n#{&1}")
+    checkins = Map.get(state, :checkins, [])
+    {checkins, state}
   end
 
   @doc """
@@ -118,7 +104,10 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
         cancel_checkin_timer(checkin_id)
         # Remove from database
         Checkins.delete_checkin(checkin)
-        {{:ok, "Check-in removed"}, state}
+        # Remove from state
+        new_checkins = Enum.reject(state.checkins, &(&1.id == checkin_id))
+        new_state = %{state | checkins: new_checkins}
+        {{:ok, "Check-in removed"}, new_state}
     end
   end
 

@@ -6,6 +6,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   listing, and management of check-ins.
   """
 
+  alias OpenDevCoach.CLI.Views.CheckinView
   alias OpenDevCoach.Servers.Scheduler
 
   @doc """
@@ -46,8 +47,10 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   """
   def add_checkin(time, description) do
     case Scheduler.add_checkin(time, description) do
-      checkin_list when is_binary(checkin_list) ->
-        {:ok, checkin_list}
+      {:ok, _checkin_id} ->
+        checkins = Scheduler.list_checkins()
+        formatted = CheckinView.format(checkins)
+        {:ok, formatted}
 
       {:error, reason} ->
         {:error, "Failed to schedule check-in: #{reason}"}
@@ -58,13 +61,9 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   Lists all scheduled check-ins.
   """
   def list_checkins(_args) do
-    case Scheduler.list_checkins() do
-      checkin_list when is_binary(checkin_list) ->
-        {:ok, checkin_list}
-
-      _ ->
-        {:error, "Error retrieving checkins."}
-    end
+    checkins = Scheduler.list_checkins()
+    formatted = CheckinView.format(checkins)
+    {:ok, formatted}
   end
 
   @doc """
@@ -78,14 +77,5 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
       {:error, reason} ->
         {:error, "Failed to remove check-in: #{reason}"}
     end
-  end
-
-  # Private Functions
-
-  defp format_time(datetime) do
-    datetime
-    |> DateTime.to_string()
-    # Format as "YYYY-MM-DD HH:MM"
-    |> String.slice(0, 16)
   end
 end
