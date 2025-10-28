@@ -122,6 +122,12 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 ## Additional Todos
 
+### [ADD-0] UUIDs
+- [ ] Switch everything to UUIDs
+    - [ ] tasks
+    - [ ] checkins
+    - [ ] config
+
 ### [ADD-1] Archive Tasks
 - [ ] Add a task archive status.
 - [ ] Ensure archived tasks are not normally displayed.
