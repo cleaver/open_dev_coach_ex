@@ -197,7 +197,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Gets a configuration value by key.
   """
   @spec get_config(session_state(), String.t()) ::
-          {{:ok, String.t()} | {:error, String.t()}, session_state()}
+          {{:ok, {String.t(), any()}} | {:error, String.t()}, session_state()}
   def get_config(state, key) do
     case Map.get(state.config, key, nil) do
       nil ->
