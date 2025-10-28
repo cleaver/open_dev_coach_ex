@@ -1,6 +1,6 @@
 defmodule OpenDevCoach.CheckinsTest do
+  use OpenDevCoach.DataCase, async: false
   alias OpenDevCoach.CheckinFixtures
-  use OpenDevCoach.DataCase
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
