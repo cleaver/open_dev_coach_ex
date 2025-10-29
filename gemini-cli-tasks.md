@@ -126,6 +126,9 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 - [ ] Switch everything to UUIDs
     - [x] tasks
     - [ ] checkins
+        - [ ] generate ID for scheduler genserver state
+        - [ ] format the checkins with ordinal
+        - [ ] handle remove by ordinal
     - [ ] config
     - [ ] agent history
 

@@ -44,29 +44,30 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   def add_checkin(state, time_or_interval, description \\ nil) do
     case parse_time_or_interval(time_or_interval) do
       {:ok, next_time} ->
-        # Create checkin in database first to get an ID
-        case Checkins.create_checkin(%{
-               scheduled_at: next_time,
-               description: description,
-               status: "SCHEDULED"
-             }) do
-          {:ok, checkin} ->
-            new_state = add_checkin_to_state(state, checkin)
-            schedule_checkin(checkin)
-            {{:ok, checkin.id}, new_state}
+        {checkin, new_state} = add_checkin_to_state(state, next_time, description)
 
-          {:error, changeset} ->
-            reason = "Failed to create checkin: #{inspect(changeset.errors)}"
-            {{:error, reason}, state}
-        end
+        Task.start(fn ->
+          Checkins.create_checkin(checkin)
+        end)
+
+        list_checkins(new_state)
 
       {:error, reason} ->
         {{:error, reason}, state}
     end
   end
 
-  defp add_checkin_to_state(state, checkin) do
-    %{state | checkins: Map.get(state, :checkins, []) ++ [checkin]}
+  defp add_checkin_to_state(state, next_time, description) do
+    checkin = %Checkin{
+      id: Ecto.UUID.generate(),
+      scheduled_at: next_time,
+      description: description,
+      status: "SCHEDULED"
+    }
+
+    all_checkins = Map.get(state, :checkins, [])
+    new_checkins = all_checkins ++ [checkin]
+    {checkin, %{state | checkins: new_checkins}}
   end
 
   @doc """
@@ -75,12 +76,24 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   Parameters:
     - state: Current scheduler state
 
-  Returns:
-    - {checkins, state} where checkins is the list of active check-ins
+  Returns: - {checkins, state} where checkins is the list of active check-ins with their ordinal
   """
+  @spec list_checkins(scheduler_state()) ::
+          {{:ok, list({Checkin.t(), integer()})}, scheduler_state()}
   def list_checkins(state) do
-    checkins = Map.get(state, :checkins, [])
-    {checkins, state}
+    checkins = sort_checkins_with_ordinal(state)
+
+    {{:ok, checkins}, state}
+  end
+
+  defp sort_checkins_with_ordinal(state) do
+    state
+    |> Map.get(:checkins, [])
+    |> Enum.sort_by(& &1.scheduled_at)
+    |> Enum.with_index()
+    |> Enum.map(fn {checkin, index} ->
+      {checkin, index + 1}
+    end)
   end
 
   @doc """
@@ -88,26 +101,42 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
 
   Parameters:
     - state: Current scheduler state
-    - checkin_id: ID of the check-in to remove
+    - checkin_ordinal: Ordinal of the check-in to remove
 
   Returns:
     - {{:ok, message}, new_state} on success
     - {{:error, reason}, state} on failure
   """
-  def remove_checkin(state, checkin_id) do
-    case Checkins.get_checkin(checkin_id) do
-      nil ->
-        {{:error, "Check-in not found"}, state}
+  def remove_checkin(state, checkin_ordinal) do
+    {checkin, new_state} = remove_checkin_from_state(state, checkin_ordinal)
 
-      checkin ->
-        # Cancel any pending timer
-        cancel_checkin_timer(checkin_id)
-        # Remove from database
-        Checkins.delete_checkin(checkin)
-        # Remove from state
-        new_checkins = Enum.reject(state.checkins, &(&1.id == checkin_id))
-        new_state = %{state | checkins: new_checkins}
-        {{:ok, "Check-in removed"}, new_state}
+    Task.start(fn ->
+      Checkins.delete_checkin(checkin)
+    end)
+
+    {{:ok, "Check-in removed"}, new_state}
+  end
+
+  defp remove_checkin_from_state(state, checkin_ordinal) when is_integer(checkin_ordinal) do
+    sorted_checkins = sort_checkins_with_ordinal(state)
+    {{checkin, _}, new_checkins} = List.pop_at(sorted_checkins, checkin_ordinal - 1)
+    {checkin, %{state | checkins: new_checkins}}
+  end
+
+  defp remove_checkin_from_state(_, _) do
+    {:error, "Invalid checkin ordinal"}
+  end
+
+  defp update_checkin(state, checkin, attrs) do
+    checkin_changeset = Checkin.changeset(checkin, attrs)
+
+    case Ecto.Changeset.apply_action(checkin_changeset, :update) do
+      {:ok, new_checkin} ->
+        {new_checkin, %{state | checkins: new_checkin_list}}
+
+      {:error, changeset} ->
+        Logger.error("Failed to update check-in: #{inspect(changeset)}")
+        state
     end
   end
 
@@ -122,7 +151,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     - {new_state, new_state} (state doesn't change for check-in handling)
   """
   def handle_checkin_trigger(state, checkin_id) do
-    case Checkins.get_checkin(checkin_id) do
+    case Enum.find(state.checkins, &(&1.id == checkin_id)) do
       nil ->
         Logger.warning("Check-in #{checkin_id} not found, skipping")
         {state, state}

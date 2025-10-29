@@ -11,7 +11,7 @@ defmodule OpenDevCoach.CLI.Views.CheckinView do
   @doc """
   Formats a list of check-ins for display in the console.
   """
-  @spec format([Checkin.t()]) :: String.t()
+  @spec format([{Checkin.t(), integer()}]) :: String.t()
   def format(checkins) when is_list(checkins) do
     case checkins do
       [] ->
@@ -19,12 +19,10 @@ defmodule OpenDevCoach.CLI.Views.CheckinView do
 
       _ ->
         checkins
-        |> Enum.sort_by(& &1.scheduled_at)
-        |> Enum.with_index()
         |> Enum.map_join("\n", fn {checkin, index} ->
           scheduled_str = Timex.format!(checkin.scheduled_at, "%Y-%m-%d %I:%M%p", :strftime)
           desc = if checkin.description, do: checkin.description, else: ""
-          "  #{index + 1}. #{scheduled_str}#{desc} (#{checkin.status})"
+          "  #{index}. #{scheduled_str}#{desc} (#{checkin.status})"
         end)
         |> then(&"Scheduled Check-ins:\n#{&1}")
     end

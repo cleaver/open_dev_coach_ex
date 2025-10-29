@@ -10,6 +10,7 @@ defmodule OpenDevCoach.Checkins.Checkin do
   import Ecto.Changeset
 
   @type t() :: %__MODULE__{
+          id: binary(),
           scheduled_at: DateTime.t(),
           status: String.t(),
           description: String.t(),
@@ -17,6 +18,7 @@ defmodule OpenDevCoach.Checkins.Checkin do
           completed_at: DateTime.t()
         }
 
+  @primary_key {:id, :binary_id, autogenerate: true}
   schema "checkins" do
     field(:scheduled_at, :utc_datetime)
     field(:status, :string, default: "SCHEDULED")

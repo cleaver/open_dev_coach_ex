@@ -97,7 +97,9 @@ defmodule OpenDevCoach.CheckinsTest do
     end
 
     test "returns nil when checkin does not exist" do
-      assert Checkins.get_checkin(999_999) == nil
+      # Using a valid UUID format that doesn't exist in the database
+      fake_id = "00000000-0000-0000-0000-000000000000"
+      assert Checkins.get_checkin(fake_id) == nil
     end
 
     test "returns checkin with converted timezone" do
@@ -374,8 +376,9 @@ defmodule OpenDevCoach.CheckinsTest do
     end
 
     test "handles invalid ID for get_checkin" do
-      assert Checkins.get_checkin(999_999) == nil
-      assert Checkins.get_checkin(0) == nil
+      # Using valid UUID formats that don't exist in the database
+      fake_id = "00000000-0000-0000-0000-000000000000"
+      assert Checkins.get_checkin(fake_id) == nil
     end
 
     test "handles update with empty attributes" do

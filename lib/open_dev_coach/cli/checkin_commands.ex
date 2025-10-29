@@ -33,7 +33,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
          Invalid check-in command. Available options:
            /checkin add <time> [description]  - Schedule a check-in
            /checkin list                      - List all check-ins
-           /checkin remove <id>               - Remove a check-in
+           /checkin remove <number>           - Remove a check-in
 
          Time formats:
            HH:MM (e.g., '09:30' for 9:30 AM)
@@ -47,13 +47,11 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   """
   def add_checkin(time, description) do
     case Scheduler.add_checkin(time, description) do
-      {:ok, _checkin_id} ->
-        checkins = Scheduler.list_checkins()
-        formatted = CheckinView.format(checkins)
-        {:ok, formatted}
+      {:ok, checkins} ->
+        {:ok, CheckinView.format(checkins)}
 
       {:error, reason} ->
-        {:error, "Failed to schedule check-in: #{reason}"}
+        {:error, "Failed to add check-in: #{reason}"}
     end
   end
 
@@ -61,9 +59,13 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   Lists all scheduled check-ins.
   """
   def list_checkins(_args) do
-    checkins = Scheduler.list_checkins()
-    formatted = CheckinView.format(checkins)
-    {:ok, formatted}
+    case Scheduler.list_checkins() do
+      {:ok, checkins} ->
+        {:ok, CheckinView.format(checkins)}
+
+      {:error, reason} ->
+        {:error, "Failed to list check-ins: #{reason}"}
+    end
   end
 
   @doc """
