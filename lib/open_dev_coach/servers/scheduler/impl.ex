@@ -10,6 +10,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
+  alias OpenDevCoach.Helpers.List, as: ListHelper
   alias OpenDevCoach.Servers.Session
 
   @type scheduler_state() :: %{
@@ -127,19 +128,6 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     {:error, "Invalid checkin ordinal"}
   end
 
-  defp update_checkin(state, checkin, attrs) do
-    checkin_changeset = Checkin.changeset(checkin, attrs)
-
-    case Ecto.Changeset.apply_action(checkin_changeset, :update) do
-      {:ok, new_checkin} ->
-        {new_checkin, %{state | checkins: new_checkin_list}}
-
-      {:error, changeset} ->
-        Logger.error("Failed to update check-in: #{inspect(changeset)}")
-        state
-    end
-  end
-
   @doc """
   Handles a check-in trigger from the timer.
 
@@ -157,19 +145,35 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
         {state, state}
 
       checkin ->
-        # Send check-in message to Session
         Session.handle_checkin(checkin)
 
-        # Update last triggered time and mark as completed
-        Checkins.update_checkin(checkin, %{
-          last_triggered_at: DateHelper.local_datetime_now(),
-          status: "COMPLETED"
-        })
+        {updated_checkin, new_state} =
+          update_checkin(state, checkin, %{
+            last_triggered_at: DateHelper.local_datetime_now(),
+            status: "COMPLETED"
+          })
 
-        # No rescheduling - this is a one-time check-in
         Logger.info("Check-in #{checkin_id} completed and marked as COMPLETED")
 
-        {state, state}
+        {updated_checkin, new_state}
+    end
+  end
+
+  defp update_checkin(state, checkin, attrs) do
+    case Checkins.prepare_update_changeset(checkin, attrs) do
+      %Ecto.Changeset{valid?: true} = changeset ->
+        updated_checkin_local = Checkins.apply_update_changeset(changeset)
+
+        updated_checkin_list =
+          ListHelper.update_item_by_match(state.checkins, &(&1.id == checkin.id), fn _item ->
+            updated_checkin_local
+          end)
+
+        Task.start(fn -> Checkins.persist_update_changeset(changeset) end)
+        {updated_checkin_local, %{state | checkins: updated_checkin_list}}
+
+      _ ->
+        {:error, state}
     end
   end
 
@@ -186,30 +190,15 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     Logger.info("Restored #{length(scheduled_checkins)} scheduled check-ins from database")
   end
 
-  # TODO: Make sure this is necessary
   defp schedule_checkin(checkin) do
     next_time = checkin.scheduled_at
     now = DateHelper.local_datetime_now()
 
-    case DateTime.compare(next_time, now) do
-      :gt ->
-        # Schedule for future
-        delay_ms = DateTime.diff(next_time, now, :millisecond)
-        Process.send_after(self(), {:checkin, checkin.id}, delay_ms)
-        Logger.debug("Scheduled check-in #{checkin.id} for #{next_time}")
-
-      _ ->
-        # Time has passed, mark as SKIPPED
-        Checkins.change_checkin_status(checkin, "SKIPPED")
-        Logger.info("Check-in #{checkin.id} time has passed, marked as SKIPPED")
+    if DateTime.compare(next_time, now) == :gt do
+      delay_ms = DateTime.diff(next_time, now, :millisecond)
+      Process.send_after(self(), {:checkin, checkin.id}, delay_ms)
+      Logger.debug("Scheduled check-in #{checkin.id} for #{next_time}")
     end
-  end
-
-  defp cancel_checkin_timer(checkin_id) do
-    # TODO: Process.send_after returns a timer reference, but we're not storing it
-    # In a production system, you'd want to store timer references to cancel them
-    # For now, we'll rely on the process being restarted to clear old timers
-    Logger.debug("Check-in #{checkin_id} timer cancelled")
   end
 
   defp parse_time_or_interval(input) when is_binary(input) do

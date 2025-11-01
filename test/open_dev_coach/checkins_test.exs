@@ -243,22 +243,6 @@ defmodule OpenDevCoach.CheckinsTest do
     end
   end
 
-  describe "change_checkin_status/2" do
-    setup [:scheduled_checkin]
-
-    test "changes checkin status", %{scheduled_checkin: scheduled_checkin} do
-      {:ok, updated_checkin} = Checkins.change_checkin_status(scheduled_checkin, "SKIPPED")
-
-      assert updated_checkin.status == "SKIPPED"
-    end
-
-    test "validates status value", %{scheduled_checkin: scheduled_checkin} do
-      {:error, changeset} = Checkins.change_checkin_status(scheduled_checkin, "INVALID_STATUS")
-
-      assert %{status: ["is invalid"]} = errors_on(changeset)
-    end
-  end
-
   describe "complete_checkin/1" do
     setup [:scheduled_checkin]
 
@@ -393,14 +377,14 @@ defmodule OpenDevCoach.CheckinsTest do
       {:ok, checkin} = Checkins.create_checkin(valid_checkin_attrs())
       assert checkin.status == "SCHEDULED"
 
-      {:ok, checkin} = Checkins.change_checkin_status(checkin, "SKIPPED")
+      {:ok, checkin} = Checkins.update_checkin(checkin, %{status: "SKIPPED"})
       assert checkin.status == "SKIPPED"
 
       {:ok, checkin} = Checkins.complete_checkin(checkin)
       assert checkin.status == "COMPLETED"
       assert checkin.completed_at
 
-      {:ok, checkin} = Checkins.change_checkin_status(checkin, "CANCELLED")
+      {:ok, checkin} = Checkins.update_checkin(checkin, %{status: "CANCELLED"})
       assert checkin.status == "CANCELLED"
     end
   end

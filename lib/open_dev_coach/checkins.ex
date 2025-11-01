@@ -15,6 +15,34 @@ defmodule OpenDevCoach.Checkins do
   alias OpenDevCoach.Repo
 
   @doc """
+  Prepares an update changeset, handling timezone conversion.
+  This is the "validation" step.
+  """
+  def prepare_update_changeset(%Checkin{} = checkin, attrs) do
+    attrs = convert_local_to_utc(attrs)
+    Checkin.changeset(checkin, attrs)
+  end
+
+  @doc """
+  Applies a valid changeset and returns the new struct in local time.
+  Use this for in-memory state updates.
+  """
+  def apply_update_changeset(%Ecto.Changeset{valid?: true} = changeset) do
+    new_struct_utc = Ecto.Changeset.apply_action!(changeset, :update)
+    convert_utc_to_local(new_struct_utc)
+  end
+
+  def apply_update_changeset(%Ecto.Changeset{} = changeset), do: {:error, changeset}
+
+  @doc """
+  Persists a changeset to the database.
+  This is the "persistence" step for an async Task.
+  """
+  def persist_update_changeset(%Ecto.Changeset{} = changeset) do
+    Repo.update(changeset)
+  end
+
+  @doc """
   Creates a new check-in, converting local time to UTC for storage.
   """
   def create_checkin(attrs \\ %{}) do
@@ -86,15 +114,14 @@ defmodule OpenDevCoach.Checkins do
   Updates a check-in with the given attributes, converting times to UTC if needed.
   """
   def update_checkin(%Checkin{} = checkin, attrs) do
-    # Convert any time fields from local to UTC
-    attrs = convert_local_to_utc(attrs)
+    changeset = prepare_update_changeset(checkin, attrs)
 
-    checkin
-    |> Checkin.changeset(attrs)
-    |> Repo.update()
-    |> case do
-      {:ok, checkin} -> {:ok, convert_utc_to_local(checkin)}
-      error -> error
+    case persist_update_changeset(changeset) do
+      {:ok, updated_checking_utc} ->
+        {:ok, convert_utc_to_local(updated_checking_utc)}
+
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
@@ -103,13 +130,6 @@ defmodule OpenDevCoach.Checkins do
   """
   def delete_checkin(%Checkin{} = checkin) do
     Repo.delete(checkin)
-  end
-
-  @doc """
-  Changes the status of a check-in.
-  """
-  def change_checkin_status(checkin, status) do
-    update_checkin(checkin, %{status: status})
   end
 
   @doc """
