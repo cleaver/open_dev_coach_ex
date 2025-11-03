@@ -14,7 +14,8 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   alias OpenDevCoach.Servers.Session
 
   @type scheduler_state() :: %{
-          checkins: [Checkin.t()]
+          checkins: [Checkin.t()],
+          timers: [reference()]
         }
 
   @doc """
@@ -26,8 +27,8 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     # Handle missed check-ins and restore active ones from database
     handle_missed_checkins()
     checkins = Checkins.list_scheduled_checkins()
-    restore_checkins(checkins)
-    %{checkins: checkins}
+    timers = restore_checkins(checkins)
+    %{checkins: checkins, timers: timers}
   end
 
   @doc """
@@ -45,30 +46,30 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   def add_checkin(state, time_or_interval, description \\ nil) do
     case parse_time_or_interval(time_or_interval) do
       {:ok, next_time} ->
-        {checkin, new_state} = add_checkin_to_state(state, next_time, description)
+        id = Ecto.UUID.generate()
 
-        Task.start(fn ->
-          Checkins.create_checkin(checkin)
-        end)
+        attrs = %{
+          id: id,
+          scheduled_at: next_time,
+          description: description,
+          status: "SCHEDULED"
+        }
 
+        checkin = struct(Checkin, attrs)
+        timer = schedule_checkin(checkin)
+
+        new_state = %{
+          state
+          | checkins: [checkin | state.checkins],
+            timers: [timer | state.timers]
+        }
+
+        Task.start(fn -> Checkins.create_checkin(attrs) end)
         list_checkins(new_state)
 
       {:error, reason} ->
         {{:error, reason}, state}
     end
-  end
-
-  defp add_checkin_to_state(state, next_time, description) do
-    checkin = %Checkin{
-      id: Ecto.UUID.generate(),
-      scheduled_at: next_time,
-      description: description,
-      status: "SCHEDULED"
-    }
-
-    all_checkins = Map.get(state, :checkins, [])
-    new_checkins = all_checkins ++ [checkin]
-    {checkin, %{state | checkins: new_checkins}}
   end
 
   @doc """
@@ -111,9 +112,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   def remove_checkin(state, checkin_ordinal) do
     {checkin, new_state} = remove_checkin_from_state(state, checkin_ordinal)
 
-    Task.start(fn ->
-      Checkins.delete_checkin(checkin)
-    end)
+    Task.start(fn -> Checkins.delete_checkin(checkin) end)
 
     {{:ok, "Check-in removed"}, new_state}
   end
@@ -178,6 +177,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   end
 
   defp handle_missed_checkins do
+    # We should only call this at genserver init.
     {update_count, _} = Checkins.mark_past_scheduled_checkins_as_skipped()
 
     if update_count > 0 do
@@ -186,8 +186,8 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   end
 
   defp restore_checkins(scheduled_checkins) do
-    Enum.each(scheduled_checkins, &schedule_checkin/1)
-    Logger.info("Restored #{length(scheduled_checkins)} scheduled check-ins from database")
+    Logger.info("Restoring #{length(scheduled_checkins)} scheduled check-ins")
+    ListHelper.map_filter(scheduled_checkins, &schedule_checkin/1, &(&1 != nil))
   end
 
   defp schedule_checkin(checkin) do
@@ -196,10 +196,12 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
 
     if DateTime.compare(next_time, now) == :gt do
       delay_ms = DateTime.diff(next_time, now, :millisecond)
+      Logger.info("Scheduling check-in #{checkin.id} for #{next_time}")
       Process.send_after(self(), {:checkin, checkin.id}, delay_ms)
-      Logger.debug("Scheduled check-in #{checkin.id} for #{next_time}")
     end
   end
+
+  defp cancel_checkin_timers(timer_list), do: Enum.each(timer_list, &Process.cancel_timer/1)
 
   defp parse_time_or_interval(input) when is_binary(input) do
     DateHelper.parse_time_or_interval(input)

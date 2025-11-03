@@ -30,9 +30,11 @@ defmodule OpenDevCoach.SchedulerTest do
   describe "check-in management" do
     test "can add and list check-ins" do
       {:ok, checkin_id} = Scheduler.add_checkin("10:00", "Test check-in")
-      checkins = Scheduler.list_checkins()
-      assert length(checkins) >= 1
-      assert Enum.any?(checkins, fn c -> c.id == checkin_id end)
+      {:ok, checkins} = Scheduler.list_checkins()
+      checkins_without_ordinal = Enum.map(checkins, &elem(&1, 0))
+      assert length(checkins_without_ordinal) >= 1
+      assert Map.get(hd(checkins_without_ordinal), :id) == checkin_id
+      assert Enum.any?(checkins_without_ordinal, fn c -> c.id == checkin_id end)
     end
 
     test "can remove check-ins" do

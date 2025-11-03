@@ -47,7 +47,10 @@ defmodule OpenDevCoach.Checkins do
   """
   def create_checkin(attrs \\ %{}) do
     # Convert scheduled_at from local time to UTC if present
-    attrs = convert_local_to_utc(attrs)
+    attrs =
+      attrs
+      |> maybe_generate_id()
+      |> convert_local_to_utc()
 
     %Checkin{}
     |> Checkin.changeset(attrs)
@@ -55,6 +58,14 @@ defmodule OpenDevCoach.Checkins do
     |> case do
       {:ok, checkin} -> {:ok, convert_utc_to_local(checkin)}
       error -> error
+    end
+  end
+
+  defp maybe_generate_id(attrs) do
+    if Map.has_key?(attrs, :id) or Map.has_key?(attrs, "id") do
+      attrs
+    else
+      Map.put(attrs, :id, Ecto.UUID.generate())
     end
   end
 

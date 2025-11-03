@@ -29,4 +29,18 @@ defmodule OpenDevCoach.Helpers.List do
         {:ok, updated_item, new_list}
     end
   end
+
+  @doc """
+  Map and inumerable and apply a filter function to the results. The `map_fn` is applied first, and the the `filter_fn` is applied to the results.
+  Parameters:
+    - enum: The enumerable to map and filter
+    - filter_fn: The function to filter the results
+    - map_fn: The function to map the results
+  Returns:
+    - The mapped and filtered enumerable
+  """
+  @spec map_filter(Enumerable.t(), (any() -> any()), (any() -> boolean())) :: Enumerable.t()
+  def map_filter(enum, map_fn, filter_fn) do
+    for x <- enum, result = map_fn.(x), filter_fn.(result) == true, do: result
+  end
 end

@@ -9,6 +9,13 @@ defmodule OpenDevCoach.Checkins.Checkin do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @required_fields [:id, :scheduled_at, :status]
+  @optional_fields [:description, :last_triggered_at, :completed_at]
+  @all_fields @required_fields ++ @optional_fields
+
+  @doc "Checkin status values"
+  def checkin_status_values, do: ["SCHEDULED", "SKIPPED", "COMPLETED", "CANCELLED"]
+
   @type t() :: %__MODULE__{
           id: binary(),
           scheduled_at: DateTime.t(),
@@ -31,8 +38,8 @@ defmodule OpenDevCoach.Checkins.Checkin do
 
   def changeset(checkin, attrs) do
     checkin
-    |> cast(attrs, [:scheduled_at, :status, :description, :last_triggered_at, :completed_at])
-    |> validate_required([:scheduled_at, :status])
-    |> validate_inclusion(:status, ["SCHEDULED", "SKIPPED", "COMPLETED", "CANCELLED"])
+    |> cast(attrs, @all_fields)
+    |> validate_required(@required_fields)
+    |> validate_inclusion(:status, checkin_status_values())
   end
 end
