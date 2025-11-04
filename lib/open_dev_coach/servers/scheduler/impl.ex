@@ -40,7 +40,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     - description: Optional description for the check-in
 
   Returns:
-    - {{:ok, checkin_id}, new_state} on success
+    - {{:ok, checkin, list_of_sorted_checkins}, new_state} on success
     - {{:error, reason}, state} on failure
   """
   def add_checkin(state, time_or_interval, description \\ nil) do
@@ -65,7 +65,8 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
         }
 
         Task.start(fn -> Checkins.create_checkin(attrs) end)
-        list_checkins(new_state)
+        list_of_sorted_checkins = sort_checkins_with_ordinal(new_state)
+        {{:ok, checkin, list_of_sorted_checkins}, new_state}
 
       {:error, reason} ->
         {{:error, reason}, state}
@@ -119,7 +120,13 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
 
   defp remove_checkin_from_state(state, checkin_ordinal) when is_integer(checkin_ordinal) do
     sorted_checkins = sort_checkins_with_ordinal(state)
-    {{checkin, _}, new_checkins} = List.pop_at(sorted_checkins, checkin_ordinal - 1)
+    {checkin, _ordinal} = Enum.at(sorted_checkins, checkin_ordinal - 1)
+
+    new_checkins =
+      state
+      |> Map.get(:checkins, [])
+      |> Enum.reject(&(&1.id == checkin.id))
+
     {checkin, %{state | checkins: new_checkins}}
   end
 
@@ -201,7 +208,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     end
   end
 
-  defp cancel_checkin_timers(timer_list), do: Enum.each(timer_list, &Process.cancel_timer/1)
+  defp cancel_all_checkin_timers(timer_list), do: Enum.each(timer_list, &Process.cancel_timer/1)
 
   defp parse_time_or_interval(input) when is_binary(input) do
     DateHelper.parse_time_or_interval(input)

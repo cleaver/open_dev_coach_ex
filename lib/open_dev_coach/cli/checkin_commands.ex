@@ -47,7 +47,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   """
   def add_checkin(time, description) do
     case Scheduler.add_checkin(time, description) do
-      {:ok, checkins} ->
+      {:ok, _checkin, checkins} ->
         {:ok, CheckinView.format(checkins)}
 
       {:error, reason} ->

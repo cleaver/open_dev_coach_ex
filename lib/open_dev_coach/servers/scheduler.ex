@@ -6,6 +6,7 @@ defmodule OpenDevCoach.Servers.Scheduler do
   It delegates all calls to the appropriate GenServer functions.
   """
 
+  alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Servers.Scheduler.Server
 
   @doc """
@@ -36,7 +37,7 @@ defmodule OpenDevCoach.Servers.Scheduler do
     - description: Optional description for the check-in
 
   Returns:
-    - {:ok, checkin_id} on success
+    - {:ok, checkin, list_of_sorted_checkins} on success
     - {:error, reason} on failure
   """
   def add_checkin(time_or_interval, description \\ nil) do
@@ -45,13 +46,19 @@ defmodule OpenDevCoach.Servers.Scheduler do
 
   @doc """
   Lists all scheduled check-ins.
+
+  Returns ordered list of check-ins: 
+    {:ok, [ { %Checkin{}, 1 }, { %Checkin{}, 2 } ] }
   """
+  @spec list_checkins() :: {:ok, [{Checkin.t(), ordinal :: integer()}]}
   def list_checkins do
     GenServer.call(__MODULE__, :list_checkins)
   end
 
   @doc """
   Removes a scheduled check-in by ID.
+
+  Returns: {}
   """
   def remove_checkin(checkin_id) do
     GenServer.call(__MODULE__, {:remove_checkin, checkin_id})
