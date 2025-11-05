@@ -10,6 +10,7 @@ defmodule OpenDevCoach.CLI.CommandsTest do
       assert Map.has_key?(commands, "/help")
       assert Map.has_key?(commands, "/quit")
       assert Map.has_key?(commands, "/task")
+      assert Map.has_key?(commands, "/checkin")
       assert Map.has_key?(commands, "/config")
       assert Map.has_key?(commands, "catchall_handler")
       assert length(Map.keys(commands)) == 6
