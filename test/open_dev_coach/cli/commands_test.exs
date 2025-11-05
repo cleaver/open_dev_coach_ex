@@ -3,7 +3,6 @@ defmodule OpenDevCoach.CLI.CommandsTest do
 
   alias OpenDevCoach.CLI.Commands
 
-  # TODO: Maybe not useful tests.
   describe "CLI Commands" do
     test "commands/0 returns expected command map" do
       commands = Commands.commands()
