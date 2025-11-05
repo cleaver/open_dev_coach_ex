@@ -23,12 +23,11 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   """
   def init(_opts) do
     Logger.info("OpenDevCoach Scheduler started")
-
-    # Handle missed check-ins and restore active ones from database
     handle_missed_checkins()
-    checkins = Checkins.list_scheduled_checkins()
-    timers = restore_checkins(checkins)
-    %{checkins: checkins, timers: timers}
+
+    _state =
+      %{checkins: Checkins.list_scheduled_checkins(), timers: []}
+      |> reload_scheduled_checkins()
   end
 
   @doc """
@@ -190,6 +189,19 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     if update_count > 0 do
       Logger.info("Marked #{update_count} missed check-ins as SKIPPED")
     end
+  end
+
+  defp reload_scheduled_checkins(state) do
+    state
+    |> Map.get(:timers, [])
+    |> cancel_all_checkin_timers()
+
+    timers =
+      state
+      |> Map.get(:checkins, [])
+      |> restore_checkins()
+
+    %{state | timers: timers}
   end
 
   defp restore_checkins(scheduled_checkins) do
