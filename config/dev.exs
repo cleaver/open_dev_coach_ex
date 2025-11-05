@@ -30,7 +30,7 @@ config :git_hooks,
       verbose: false,
       tasks: [
         {:cmd, "mix dialyzer"},
-        {:cmd, "mix test --color"},
+        {:cmd, "mix test"},
         {:cmd, "mix credo --strict"}
       ]
     ]
