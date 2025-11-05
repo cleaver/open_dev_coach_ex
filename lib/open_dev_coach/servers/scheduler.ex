@@ -50,7 +50,7 @@ defmodule OpenDevCoach.Servers.Scheduler do
   Returns ordered list of check-ins: 
     {:ok, [ { %Checkin{}, 1 }, { %Checkin{}, 2 } ] }
   """
-  @spec list_checkins() :: {:ok, [{Checkin.t(), ordinal :: integer()}]}
+  @spec list_checkins() :: {:ok, [{Checkin.t(), ordinal :: integer()}]} | {:error, String.t()}
   def list_checkins do
     GenServer.call(__MODULE__, :list_checkins)
   end
