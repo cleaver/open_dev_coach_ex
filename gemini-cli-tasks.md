@@ -125,7 +125,7 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 ### [ADD-0] UUIDs
 - [ ] Switch everything to UUIDs
     - [ ] tasks
-        - [ ] generate ID for tasks genserver state
+        - [x] generate ID for tasks genserver state
         - [ ] format with ordinal in same manner as checkins
         - [ ] ensure removal by ordinal works properly
     - [x] checkins
