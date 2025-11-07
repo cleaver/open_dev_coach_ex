@@ -7,8 +7,61 @@ defmodule OpenDevCoach.Tasks do
   """
 
   import Ecto.Query
+  alias OpenDevCoach.Helpers.Date, as: DateHelper
   alias OpenDevCoach.Repo
   alias OpenDevCoach.Tasks.Task
+
+  @doc """
+  Prepares an update changeset, handling timezone conversion.
+  """
+  def prepare_update_changeset(%Task{} = task, attrs) do
+    attrs = convert_local_to_utc(attrs)
+    Task.changeset(task, attrs)
+  end
+
+  @doc """
+  Applies a valid changeset and returns the new struct in local time.
+  Use this for in-memory state updates.
+  """
+  def apply_update_changeset(%Ecto.Changeset{valid?: true} = changeset) do
+    new_struct_utc = Ecto.Changeset.apply_action!(changeset, :update)
+    convert_utc_to_local(new_struct_utc)
+  end
+
+  def apply_update_changeset(%Ecto.Changeset{} = changeset), do: {:error, changeset}
+
+  @doc """
+  Persists a changeset to the database.
+  This is the "persistence" step for an async Task.
+  """
+  def persist_update_changeset(%Ecto.Changeset{} = changeset) do
+    Repo.update(changeset)
+  end
+
+  @doc """
+  Creates a new task, converting local time to UTC for storage.
+  """
+  def create_task(attrs \\ %{}) do
+    attrs =
+      attrs
+      |> maybe_generate_id()
+      |> convert_local_to_utc()
+
+    Task.changeset(%Task{}, attrs)
+    |> Repo.insert()
+    |> case do
+      {:ok, task} -> {:ok, convert_utc_to_local(task)}
+      error -> error
+    end
+  end
+
+  defp maybe_generate_id(attrs) do
+    if Map.has_key?(attrs, :id) or Map.has_key?(attrs, "id") do
+      attrs
+    else
+      Map.put(attrs, :id, Ecto.UUID.generate())
+    end
+  end
 
   @doc """
   Lists all tasks ordered by creation time (newest first).
@@ -18,19 +71,8 @@ defmodule OpenDevCoach.Tasks do
     Task
     |> order_by([t], desc: t.inserted_at)
     |> Repo.all()
+    |> Enum.map(&convert_utc_to_local/1)
   end
-
-  @doc """
-  Creates a new task with the given description.
-  Default status is "PENDING".
-  """
-  def add_task(description) when is_binary(description) and byte_size(description) > 0 do
-    %Task{}
-    |> Task.changeset(%{description: description})
-    |> Repo.insert()
-  end
-
-  def add_task(_), do: {:error, "Task description cannot be empty"}
 
   @doc """
   Retrieves a task by its ID.
@@ -38,7 +80,7 @@ defmodule OpenDevCoach.Tasks do
   def get_task(id) when is_binary(id) do
     case Repo.get(Task, id) do
       nil -> {:error, "Task not found"}
-      task -> {:ok, task}
+      task -> {:ok, convert_utc_to_local(task)}
     end
   end
 
@@ -84,8 +126,16 @@ defmodule OpenDevCoach.Tasks do
           task
           |> Task.changeset(changes)
           |> Repo.update()
+          |> case do
+            {:ok, updated_task} -> convert_utc_to_local(updated_task)
+            error -> Repo.rollback(error)
+          end
       end
     end)
+    |> case do
+      {:ok, task} -> {:ok, task}
+      error -> error
+    end
   end
 
   def update_task_status(_, _), do: {:error, "Invalid parameters"}
@@ -104,8 +154,15 @@ defmodule OpenDevCoach.Tasks do
   @spec remove_task(binary()) :: {:ok, Task.t()} | {:error, String.t()}
   def remove_task(id) when is_binary(id) do
     case Repo.get(Task, id) do
-      nil -> {:error, "Task not found"}
-      task -> Repo.delete(task)
+      nil ->
+        {:error, "Task not found"}
+
+      task ->
+        Repo.delete(task)
+        |> case do
+          {:ok, deleted_task} -> {:ok, convert_utc_to_local(deleted_task)}
+          error -> error
+        end
     end
   end
 
@@ -121,10 +178,73 @@ defmodule OpenDevCoach.Tasks do
       |> Enum.at(ordinal - 1)
 
     case task do
-      nil -> {:error, "Task not found"}
-      task -> Repo.delete(task)
+      nil ->
+        {:error, "Task not found"}
+
+      task ->
+        Repo.delete(task)
+        |> case do
+          {:ok, deleted_task} -> {:ok, convert_utc_to_local(deleted_task)}
+          error -> error
+        end
     end
   end
 
   def remove_task_by_ordinal(_), do: {:error, "Invalid task ordinal"}
+
+  # Private timezone conversion functions
+
+  @doc false
+  defp convert_local_to_utc(attrs) when is_map(attrs) do
+    attrs
+    |> maybe_convert_datetime(:started_at)
+    |> maybe_convert_datetime(:completed_at)
+    |> maybe_convert_datetime("started_at")
+    |> maybe_convert_datetime("completed_at")
+  end
+
+  defp convert_local_to_utc(attrs), do: attrs
+
+  defp maybe_convert_datetime(attrs, key) do
+    case Map.get(attrs, key) do
+      nil ->
+        attrs
+
+      local_time when not is_nil(local_time) ->
+        utc_time =
+          case local_time do
+            %NaiveDateTime{} ->
+              # Assume local time, convert to UTC
+              local_time
+              |> Timex.to_datetime(DateHelper.local_timezone())
+              |> Timex.Timezone.convert("Etc/UTC")
+
+            %DateTime{} ->
+              # Already a DateTime, ensure it's UTC
+              Timex.Timezone.convert(local_time, "Etc/UTC")
+
+            _ ->
+              local_time
+          end
+
+        Map.put(attrs, key, utc_time)
+    end
+  end
+
+  @doc false
+  defp convert_utc_to_local(%Task{} = task) do
+    %{
+      task
+      | started_at: convert_datetime_to_local(task.started_at),
+        completed_at: convert_datetime_to_local(task.completed_at)
+    }
+  end
+
+  @doc false
+  defp convert_datetime_to_local(nil), do: nil
+
+  defp convert_datetime_to_local(utc_datetime) do
+    utc_datetime
+    |> Timex.Timezone.convert(DateHelper.local_timezone())
+  end
 end

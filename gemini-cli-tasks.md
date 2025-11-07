@@ -124,12 +124,15 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 ### [ADD-0] UUIDs
 - [ ] Switch everything to UUIDs
-    - [x] tasks
-    - [ ] checkins
-        - [ ] generate ID for scheduler genserver state
-        - [ ] format the checkins with ordinal
-        - [ ] handle remove by ordinal
-    - [ ] config
+    - [ ] tasks
+        - [ ] generate ID for tasks genserver state
+        - [ ] format with ordinal in same manner as checkins
+        - [ ] ensure removal by ordinal works properly
+    - [x] checkins
+        - [x] generate ID for scheduler genserver state
+        - [x] format the checkins with ordinal
+        - [x] handle remove by ordinal
+    - [ ] ~~config~~
     - [ ] agent history
 
 ### [ADD-1] Archive Tasks

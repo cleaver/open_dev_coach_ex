@@ -9,6 +9,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   require Logger
 
   import OpenDevCoach.Helpers.Future
+  import OpenDevCoach.Helpers.Persistence
 
   alias OpenDevCoach.AgentHistory
   alias OpenDevCoach.AgentHistory.Entry
@@ -64,14 +65,18 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   """
   @spec add_task(map(), String.t()) :: {[Task.t()], map()}
   def add_task(state, description) do
-    new_state = add_task_to_state(state, description)
-    Task.start(fn -> Tasks.add_task(description) end)
-    list_tasks(new_state)
-  end
+    attrs = %{description: description, status: "PENDING"}
 
-  defp add_task_to_state(state, description) do
-    task = %TaskSchema{description: description, status: "PENDING"}
-    %{state | tasks: Map.get(state, :tasks, []) ++ [task]}
+    {_task, new_state} =
+      add_in_memory_and_persist_async(
+        state,
+        attrs,
+        collection_key: :tasks,
+        struct_module: TaskSchema,
+        persist_function: &Tasks.create_task/1
+      )
+
+    list_tasks(new_state)
   end
 
   @doc """

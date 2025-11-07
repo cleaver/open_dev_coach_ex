@@ -7,6 +7,9 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   """
 
   require Logger
+
+  import OpenDevCoach.Helpers.Persistence
+
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
@@ -45,25 +48,25 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   def add_checkin(state, time_or_interval, description \\ nil) do
     case parse_time_or_interval(time_or_interval) do
       {:ok, next_time} ->
-        id = Ecto.UUID.generate()
-
         attrs = %{
-          id: id,
+          id: Ecto.UUID.generate(),
           scheduled_at: next_time,
           description: description,
           status: "SCHEDULED"
         }
 
-        checkin = struct(Checkin, attrs)
+        {checkin, new_state_with_checkin} =
+          add_in_memory_and_persist_async(
+            state,
+            attrs,
+            collection_key: :checkins,
+            struct_module: Checkin,
+            persist_function: &Checkins.create_checkin/1
+          )
+
         timer = schedule_checkin(checkin)
+        new_state = %{new_state_with_checkin | timers: [timer | state.timers]}
 
-        new_state = %{
-          state
-          | checkins: [checkin | state.checkins],
-            timers: [timer | state.timers]
-        }
-
-        Task.start(fn -> Checkins.create_checkin(attrs) end)
         list_of_sorted_checkins = sort_checkins_with_ordinal(new_state)
         {{:ok, checkin, list_of_sorted_checkins}, new_state}
 
@@ -165,21 +168,15 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   end
 
   defp update_checkin(state, checkin, attrs) do
-    case Checkins.prepare_update_changeset(checkin, attrs) do
-      %Ecto.Changeset{valid?: true} = changeset ->
-        updated_checkin_local = Checkins.apply_update_changeset(changeset)
-
-        updated_checkin_list =
-          ListHelper.update_item_by_match(state.checkins, &(&1.id == checkin.id), fn _item ->
-            updated_checkin_local
-          end)
-
-        Task.start(fn -> Checkins.persist_update_changeset(changeset) end)
-        {updated_checkin_local, %{state | checkins: updated_checkin_list}}
-
-      _ ->
-        {:error, state}
-    end
+    update_in_memory_and_persist_async(
+      state,
+      checkin,
+      attrs,
+      collection_key: :checkins,
+      prepare_changeset: &Checkins.prepare_update_changeset/2,
+      apply_changeset: &Checkins.apply_update_changeset/1,
+      persist_changeset: &Checkins.persist_update_changeset/1
+    )
   end
 
   defp handle_missed_checkins do
