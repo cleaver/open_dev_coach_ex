@@ -30,57 +30,89 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "adds a new task to the state", %{state: state} do
-      {tasks, new_state} = Impl.add_task(state, "New task description")
+      {{:ok, tasks}, new_state} = Impl.add_task(state, "New task description")
 
       assert length(new_state.tasks) == 1
       assert hd(new_state.tasks).description == "New task description"
       assert hd(new_state.tasks).status == "PENDING"
       assert length(tasks) == 1
-      assert hd(tasks).description == "New task description"
+      {task, _ordinal} = hd(tasks)
+      assert task.description == "New task description"
     end
 
     test "returns task list", %{state: state} do
-      {tasks, _new_state} = Impl.add_task(state, "Test task")
+      {{:ok, tasks}, _new_state} = Impl.add_task(state, "Test task")
 
       assert is_list(tasks)
       assert length(tasks) == 1
-      assert hd(tasks).description == "Test task"
-      assert hd(tasks).status == "PENDING"
+      {task, _ordinal} = hd(tasks)
+      assert task.description == "Test task"
+      assert task.status == "PENDING"
     end
   end
 
   describe "list_tasks/1" do
     test "returns empty list for empty task list" do
       state = %{tasks: []}
-      {tasks, returned_state} = Impl.list_tasks(state)
+      {{:ok, tasks}, returned_state} = Impl.list_tasks(state)
 
       assert tasks == []
       assert returned_state == state
     end
 
     test "returns task list" do
+      now = Timex.now()
+
       task_list = [
-        %TaskSchema{description: "First task", status: "PENDING"},
-        %TaskSchema{description: "Second task", status: "IN-PROGRESS"},
-        %TaskSchema{description: "Third task", status: "COMPLETED"}
+        %TaskSchema{
+          description: "First task",
+          status: "PENDING",
+          inserted_at: Timex.shift(now, hours: -3)
+        },
+        %TaskSchema{
+          description: "Second task",
+          status: "IN-PROGRESS",
+          inserted_at: Timex.shift(now, hours: -2)
+        },
+        %TaskSchema{
+          description: "Third task",
+          status: "COMPLETED",
+          inserted_at: Timex.shift(now, hours: -1)
+        }
       ]
 
       state = %{tasks: task_list}
 
-      {tasks, returned_state} = Impl.list_tasks(state)
+      {{:ok, tasks}, returned_state} = Impl.list_tasks(state)
 
       assert length(tasks) == 3
-      assert tasks == task_list
+      # Tasks are sorted by inserted_at descending (newest first)
+      {task, _ordinal} = hd(tasks)
+      assert task.description == "Third task"
       assert returned_state == state
     end
   end
 
   describe "start_task/2" do
     setup do
+      now = Timex.now()
+
       tasks = [
-        %TaskSchema{description: "Task 1", status: "PENDING"},
-        %TaskSchema{description: "Task 2", status: "PENDING"},
-        %TaskSchema{description: "Task 3", status: "PENDING"}
+        %TaskSchema{
+          description: "Task 1",
+          status: "PENDING",
+          inserted_at: Timex.shift(now, hours: -3)
+        },
+        %TaskSchema{
+          description: "Task 2",
+          status: "PENDING",
+          inserted_at: Timex.shift(now, hours: -2)
+        },
+        %TaskSchema{
+          description: "Task 3",
+          status: "PENDING",
+          inserted_at: Timex.shift(now, hours: -1)
+        }
       ]
 
       state = %{tasks: tasks}
@@ -90,21 +122,51 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     test "starts a task by ordinal number", %{state: state} do
       {{:ok, tasks}, new_state} = Impl.start_task(state, 2)
 
-      assert Enum.at(new_state.tasks, 1).status == "IN-PROGRESS"
+      # Ordinal 2 is Task 2 (second newest), which should be at index 1 in sorted order
+      sorted_tasks =
+        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+
+      assert Enum.at(sorted_tasks, 1).status == "IN-PROGRESS"
+      assert Enum.at(sorted_tasks, 1).description == "Task 2"
       assert length(tasks) == 3
     end
 
     test "puts other IN-PROGRESS tasks on hold", %{state: state} do
-      # First set task 1 to IN-PROGRESS
+      # First set Task 1 to IN-PROGRESS
+      now = Timex.now()
+
       state_with_progress = %{
         state
-        | tasks: List.update_at(state.tasks, 0, &%{&1 | status: "IN-PROGRESS"})
+        | tasks: [
+            %TaskSchema{
+              description: "Task 1",
+              status: "IN-PROGRESS",
+              inserted_at: Timex.shift(now, hours: -3)
+            },
+            %TaskSchema{
+              description: "Task 2",
+              status: "PENDING",
+              inserted_at: Timex.shift(now, hours: -2)
+            },
+            %TaskSchema{
+              description: "Task 3",
+              status: "PENDING",
+              inserted_at: Timex.shift(now, hours: -1)
+            }
+          ]
       }
 
       {{:ok, tasks}, new_state} = Impl.start_task(state_with_progress, 2)
 
-      assert Enum.at(new_state.tasks, 0).status == "ON-HOLD"
-      assert Enum.at(new_state.tasks, 1).status == "IN-PROGRESS"
+      # Ordinal 2 is Task 2, which should become IN-PROGRESS
+      # Task 1 should be put on hold
+      sorted_tasks =
+        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+
+      task1 = Enum.find(sorted_tasks, &(&1.description == "Task 1"))
+      task2 = Enum.find(sorted_tasks, &(&1.description == "Task 2"))
+      assert task1.status == "ON-HOLD"
+      assert task2.status == "IN-PROGRESS"
       assert length(tasks) == 3
     end
 
@@ -125,9 +187,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "complete_task/2" do
     setup do
+      now = Timex.now()
+
       tasks = [
-        %TaskSchema{description: "Task 1", status: "PENDING"},
-        %TaskSchema{description: "Task 2", status: "IN-PROGRESS"}
+        %TaskSchema{
+          description: "Task 1",
+          status: "PENDING",
+          inserted_at: Timex.shift(now, hours: -2)
+        },
+        %TaskSchema{
+          description: "Task 2",
+          status: "IN-PROGRESS",
+          inserted_at: Timex.shift(now, hours: -1)
+        }
       ]
 
       state = %{tasks: tasks}
@@ -137,7 +209,12 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     test "completes a task by ordinal number", %{state: state} do
       new_state = Impl.complete_task(state, 1)
 
-      assert Enum.at(new_state.tasks, 0).status == "COMPLETED"
+      # Ordinal 1 is Task 2 (newest), which should be completed
+      sorted_tasks =
+        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+
+      assert hd(sorted_tasks).status == "COMPLETED"
+      assert hd(sorted_tasks).description == "Task 2"
     end
 
     test "returns original state on error", %{state: state} do
@@ -149,10 +226,24 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "remove_task/2" do
     setup do
+      now = Timex.now()
+
       tasks = [
-        %TaskSchema{description: "Task 1", status: "PENDING"},
-        %TaskSchema{description: "Task 2", status: "IN-PROGRESS"},
-        %TaskSchema{description: "Task 3", status: "COMPLETED"}
+        %TaskSchema{
+          description: "Task 1",
+          status: "PENDING",
+          inserted_at: Timex.shift(now, hours: -3)
+        },
+        %TaskSchema{
+          description: "Task 2",
+          status: "IN-PROGRESS",
+          inserted_at: Timex.shift(now, hours: -2)
+        },
+        %TaskSchema{
+          description: "Task 3",
+          status: "COMPLETED",
+          inserted_at: Timex.shift(now, hours: -1)
+        }
       ]
 
       state = %{tasks: tasks}
@@ -163,8 +254,14 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
       new_state = Impl.remove_task(state, 2)
 
       assert length(new_state.tasks) == 2
-      assert Enum.at(new_state.tasks, 0).description == "Task 1"
-      assert Enum.at(new_state.tasks, 1).description == "Task 3"
+      # Ordinal 2 is Task 2, which should be removed
+      # Remaining tasks should be Task 1 and Task 3
+      sorted_tasks =
+        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+
+      assert length(sorted_tasks) == 2
+      assert Enum.at(sorted_tasks, 0).description == "Task 3"
+      assert Enum.at(sorted_tasks, 1).description == "Task 1"
     end
 
     test "returns original state on error", %{state: state} do

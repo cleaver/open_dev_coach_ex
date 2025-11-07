@@ -63,9 +63,13 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Adds a new task to the system.
   """
-  @spec add_task(map(), String.t()) :: {[Task.t()], map()}
+  @spec add_task(map(), String.t()) :: {{:ok, list({Task.t(), integer()})}, map()}
   def add_task(state, description) do
-    attrs = %{description: description, status: "PENDING"}
+    attrs = %{
+      description: description,
+      status: "PENDING",
+      inserted_at: Timex.now()
+    }
 
     {_task, new_state} =
       add_in_memory_and_persist_async(
@@ -82,22 +86,23 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Lists all tasks in the system.
   """
-  @spec list_tasks(map()) :: {[Task.t()], map()}
+  @spec list_tasks(map()) :: {{:ok, list({Task.t(), integer()})}, map()}
   def list_tasks(state) do
-    tasks = Map.get(state, :tasks, [])
-    {tasks, state}
+    tasks = sort_tasks_with_ordinal(state)
+    {{:ok, tasks}, state}
   end
 
   @doc """
   Starts a task (marks as IN-PROGRESS) by task order number.
   """
   @spec start_task(session_state(), integer()) ::
-          {{:ok, [Task.t()]}, session_state()} | {{:error, String.t()}, session_state()}
+          {{:ok, list({Task.t(), integer()})}, session_state()}
+          | {{:error, String.t()}, session_state()}
   def start_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
       {:ok, new_state} ->
         Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end)
-        {tasks, _} = list_tasks(new_state)
+        {{:ok, tasks}, _} = list_tasks(new_state)
         {{:ok, tasks}, new_state}
 
       {:error, reason} ->
@@ -108,16 +113,20 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   defp update_task_by_ordinal_in_state(state, task_ordinal, status)
        when is_integer(task_ordinal) do
-    tasks =
-      Map.get(state, :tasks, [])
+    sorted_tasks = sort_tasks_with_ordinal(state)
 
-    if task_ordinal < 1 or task_ordinal > length(tasks) do
+    if task_ordinal < 1 or task_ordinal > length(sorted_tasks) do
       {:error, "Task not found"}
     else
+      {task, _ordinal} = Enum.at(sorted_tasks, task_ordinal - 1)
+
       new_tasks =
-        tasks
+        state
+        |> Map.get(:tasks, [])
         |> maybe_put_other_tasks_on_hold("IN-PROGRESS")
-        |> List.update_at(task_ordinal - 1, fn task -> %{task | status: status} end)
+        |> Enum.map(fn t ->
+          if task_matches?(t, task), do: %{task | status: status}, else: t
+        end)
 
       {:ok, %{state | tasks: new_tasks}}
     end
@@ -126,6 +135,34 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   defp update_task_by_ordinal_in_state(_, _, _) do
     Logger.error("Invalid task number")
     {:error, "Invalid task number"}
+  end
+
+  defp sort_tasks_with_ordinal(state) do
+    state
+    |> Map.get(:tasks, [])
+    |> Enum.sort(&compare_tasks_desc/2)
+    |> Enum.with_index()
+    |> Enum.map(fn {task, index} ->
+      {task, index + 1}
+    end)
+  end
+
+  defp compare_tasks_desc(task1, task2) do
+    case {task1.inserted_at, task2.inserted_at} do
+      {nil, nil} -> false
+      {nil, _} -> false
+      {_, nil} -> true
+      {dt1, dt2} -> DateTime.compare(dt1, dt2) == :gt
+    end
+  end
+
+  defp task_matches?(task1, task2) do
+    # Match by ID if both have IDs, otherwise match by description (for tests)
+    cond do
+      task1.id != nil and task2.id != nil -> task1.id == task2.id
+      task1.description == task2.description -> true
+      true -> false
+    end
   end
 
   defp maybe_put_other_tasks_on_hold(tasks, "IN-PROGRESS") do
@@ -168,12 +205,18 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   end
 
   defp remove_task_by_ordinal_in_state(state, task_ordinal) when is_integer(task_ordinal) do
-    tasks = Map.get(state, :tasks, [])
+    sorted_tasks = sort_tasks_with_ordinal(state)
 
-    if task_ordinal < 1 or task_ordinal > length(tasks) do
+    if task_ordinal < 1 or task_ordinal > length(sorted_tasks) do
       {:error, "Task not found"}
     else
-      new_tasks = List.delete_at(tasks, task_ordinal - 1)
+      {task, _ordinal} = Enum.at(sorted_tasks, task_ordinal - 1)
+
+      new_tasks =
+        state
+        |> Map.get(:tasks, [])
+        |> Enum.reject(&task_matches?(&1, task))
+
       {:ok, %{state | tasks: new_tasks}}
     end
   end

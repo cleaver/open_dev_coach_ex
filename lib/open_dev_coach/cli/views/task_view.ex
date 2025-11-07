@@ -11,7 +11,7 @@ defmodule OpenDevCoach.CLI.Views.TaskView do
   @doc """
   Formats a list of tasks for display in the console.
   """
-  @spec format([Task.t()]) :: String.t()
+  @spec format([{Task.t(), integer()}]) :: String.t()
   def format(tasks) when is_list(tasks) do
     case tasks do
       [] ->
@@ -19,7 +19,6 @@ defmodule OpenDevCoach.CLI.Views.TaskView do
 
       _ ->
         tasks
-        |> Enum.with_index(1)
         |> Enum.map_join("\n", fn {task, index} ->
           status_emoji = get_status_emoji(task.status)
           "  #{index}. #{status_emoji} #{task.description} [#{task.status}]"
