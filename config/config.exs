@@ -7,7 +7,8 @@ config :open_dev_coach, OpenDevCoach.Repo,
 
 # Configure Ecto
 config :open_dev_coach,
-  ecto_repos: [OpenDevCoach.Repo]
+  ecto_repos: [OpenDevCoach.Repo],
+  async_persistence: true
 
 # Configure timezone (default to America/New_York, can be overridden in environment configs)
 config :open_dev_coach,

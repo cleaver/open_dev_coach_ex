@@ -90,7 +90,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   def start_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
       {:ok, new_state} ->
-        Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end)
+        if async_persistence?(),
+          do: Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end),
+          else: Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS")
+
         {{:ok, tasks}, _} = list_tasks(new_state)
         {{:ok, tasks}, new_state}
 
@@ -169,7 +172,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   def complete_task(state, task_ordinal) do
     case update_task_by_ordinal_in_state(state, task_ordinal, "COMPLETED") do
       {:ok, new_state} ->
-        Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "COMPLETED") end)
+        if async_persistence?(),
+          do: Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "COMPLETED") end),
+          else: Tasks.update_task_by_ordinal(task_ordinal, "COMPLETED")
+
         new_state
 
       {:error, reason} ->
@@ -184,7 +190,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   def remove_task(state, task_ordinal) do
     case remove_task_by_ordinal_in_state(state, task_ordinal) do
       {:ok, new_state} ->
-        Task.start(fn -> Tasks.remove_task_by_ordinal(task_ordinal) end)
+        if async_persistence?(),
+          do: Task.start(fn -> Tasks.remove_task_by_ordinal(task_ordinal) end),
+          else: Tasks.remove_task_by_ordinal(task_ordinal)
+
         new_state
 
       {:error, reason} ->
@@ -251,7 +260,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   def set_config(state, key, value) do
     case set_config_in_state(state, key, value) do
       {:ok, new_state} ->
-        Task.start(fn -> Configuration.set_config(key, value) end)
+        if async_persistence?(),
+          do: Task.start(fn -> Configuration.set_config(key, value) end),
+          else: Configuration.set_config(key, value)
+
         message = "Configuration '#{key}' set to '#{value}'"
         {{:ok, message}, new_state}
 
@@ -287,9 +299,9 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   def reset_config(state) do
     config = %{}
 
-    Task.start(fn ->
-      Configuration.reset_config()
-    end)
+    if async_persistence?(),
+      do: Task.start(fn -> Configuration.reset_config() end),
+      else: Configuration.reset_config()
 
     {{:ok, "All configurations have been reset"}, %{state | config: config}}
   end
@@ -323,7 +335,11 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   defp add_history(state, role, content) do
     new_history = state.history ++ [%Entry{role: role, content: content}]
-    Task.start(fn -> AgentHistory.add_conversation(role, content) end)
+
+    if async_persistence?(),
+      do: Task.start(fn -> AgentHistory.add_conversation(role, content) end),
+      else: AgentHistory.add_conversation(role, content)
+
     %{state | history: new_history}
   end
 
@@ -541,5 +557,9 @@ defmodule OpenDevCoach.Servers.Session.Impl do
       end
 
     Notifier.notify(notification_title, notification_message)
+  end
+
+  defp async_persistence? do
+    Application.get_env(:open_dev_coach, :async_persistence, true)
   end
 end

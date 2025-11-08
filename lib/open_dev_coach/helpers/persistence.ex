@@ -55,7 +55,9 @@ defmodule OpenDevCoach.Helpers.Persistence do
             updated_item
           end)
 
-        Task.start(fn -> persist_changeset_fn.(changeset) end)
+        if async_persistence?(),
+          do: Task.start(fn -> persist_changeset_fn.(changeset) end),
+          else: persist_changeset_fn.(changeset)
 
         new_state = Map.put(state, collection_key, updated_collection)
         {updated_item, new_state}
@@ -112,8 +114,14 @@ defmodule OpenDevCoach.Helpers.Persistence do
     new_collection = [item | collection]
     new_state = Map.put(state, collection_key, new_collection)
 
-    Task.start(fn -> persist_function.(attrs_with_id) end)
+    if async_persistence?(),
+      do: Task.start(fn -> persist_function.(attrs_with_id) end),
+      else: persist_function.(attrs_with_id)
 
     {item, new_state}
+  end
+
+  defp async_persistence? do
+    Application.get_env(:open_dev_coach, :async_persistence, true)
   end
 end

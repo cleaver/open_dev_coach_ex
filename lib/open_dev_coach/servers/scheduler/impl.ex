@@ -115,7 +115,9 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   def remove_checkin(state, checkin_ordinal) do
     {checkin, new_state} = remove_checkin_from_state(state, checkin_ordinal)
 
-    Task.start(fn -> Checkins.delete_checkin(checkin) end)
+    if async_persistence?(),
+      do: Task.start(fn -> Checkins.delete_checkin(checkin) end),
+      else: Checkins.delete_checkin(checkin)
 
     {{:ok, "Check-in removed"}, new_state}
   end
@@ -221,5 +223,9 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
 
   defp parse_time_or_interval(input) when is_binary(input) do
     DateHelper.parse_time_or_interval(input)
+  end
+
+  defp async_persistence? do
+    Application.get_env(:open_dev_coach, :async_persistence, true)
   end
 end

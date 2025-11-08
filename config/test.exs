@@ -5,7 +5,8 @@ config :open_dev_coach, OpenDevCoach.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :open_dev_coach,
-  ecto_repos: [OpenDevCoach.Repo]
+  ecto_repos: [OpenDevCoach.Repo],
+  async_persistence: false
 
 config :logger,
   backends: [{LoggerFileBackend, :file_log}]
