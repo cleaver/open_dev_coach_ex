@@ -120,7 +120,7 @@ defmodule OpenDevCoach.AI do
     model_spec = "#{provider}:#{value}"
 
     if ModelValidator.validate_model(model_spec) do
-      {:ok, model_spec}
+      {:ok, value}
     else
       {:error, "Unknown or unsupported AI model: #{model_spec}"}
     end

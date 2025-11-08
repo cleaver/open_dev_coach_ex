@@ -35,7 +35,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @spec init(_opts :: any()) :: session_state()
   def init(_opts) do
     Logger.info("OpenDevCoach Session started")
-    config = Configuration.list_configs() |> ensure_timezone_config()
+    config = Configuration.list_configs()
     history = AgentHistory.get_recent_history()
     tasks = Tasks.list_tasks()
 
@@ -45,17 +45,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
       self: OpenDevCoach.Servers.Session,
       tasks: tasks
     }
-  end
-
-  defp ensure_timezone_config(config) do
-    case Map.get(config, "timezone") do
-      nil ->
-        timezone = Application.get_env(:open_dev_coach, :timezone, "America/New_York")
-        Map.put(config, "timezone", timezone)
-
-      _timezone ->
-        config
-    end
   end
 
   # Task Management Functions
@@ -296,11 +285,10 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Resets all configuration to defaults.
   """
   def reset_config(state) do
-    config = %{} |> ensure_timezone_config()
+    config = %{}
 
     Task.start(fn ->
       Configuration.reset_config()
-      Configuration.set_config("timezone", config["timezone"])
     end)
 
     {{:ok, "All configurations have been reset"}, %{state | config: config}}
@@ -386,24 +374,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   end
 
   @doc """
-  Updates the timezone in the session state.
-  """
-  def update_timezone(state, timezone) do
-    Logger.info("Session timezone updated to: #{timezone}")
-    %{state | config: Map.put(state.config, "timezone", timezone)}
-  end
-
-  @doc """
-  Gets the current timezone from the session state.
-  """
-  def get_timezone(state) do
-    case Map.get(state.config, "timezone") do
-      nil -> {:error, "Session timezone not set."}
-      timezone -> {:ok, timezone}
-    end
-  end
-
-  @doc """
   Send console output.
   """
   @spec output(atom(), String.t()) :: :ok
@@ -479,12 +449,12 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     """
   end
 
-  defp format_datetime(datetime, state) do
+  defp format_datetime(datetime) do
     # Convert UTC to local timezone for display
     local_time =
       case datetime do
         %DateTime{} ->
-          timezone = Map.get(state.config, "timezone", "America/New_York")
+          timezone = Application.get_env(:open_dev_coach, :timezone, "America/New_York")
           DateTime.shift_zone!(datetime, timezone)
 
         _ ->
@@ -501,14 +471,14 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   defp process_checkin_with_ai(checkin, prompt, context, state) do
     case AI.chat([%{role: "user", content: prompt}], context: context) do
       {:ok, %{text: ai_response_text}} ->
-        handle_successful_ai_response(checkin, ai_response_text, state)
+        handle_successful_ai_response(checkin, ai_response_text)
 
       {:error, reason} ->
-        handle_ai_error(checkin, reason, state)
+        handle_ai_error(checkin, reason)
     end
   end
 
-  defp handle_successful_ai_response(checkin, ai_response_text, state) do
+  defp handle_successful_ai_response(checkin, ai_response_text) do
     # Store the check-in interaction in history
     AgentHistory.add_conversation(
       "system",
@@ -521,7 +491,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     message = """
     🔔 Check-in Time!
 
-    Scheduled for: #{format_datetime(checkin.scheduled_at, state)}
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
     #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
 
     🤖 AI Coach Response:
@@ -544,14 +514,14 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     Notifier.notify(notification_title, notification_message)
   end
 
-  defp handle_ai_error(checkin, reason, state) do
+  defp handle_ai_error(checkin, reason) do
     Logger.error("AI service error during check-in: #{reason}")
 
     # Fallback message if AI fails
     message = """
     🔔 Check-in Time!
 
-    Scheduled for: #{format_datetime(checkin.scheduled_at, state)}
+    Scheduled for: #{format_datetime(checkin.scheduled_at)}
     #{if checkin.description, do: "Description: #{checkin.description}", else: ""}
 
     ⚠️ AI service temporarily unavailable.

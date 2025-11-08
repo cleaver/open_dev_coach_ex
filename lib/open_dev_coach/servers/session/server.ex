@@ -85,11 +85,6 @@ defmodule OpenDevCoach.Servers.Session.Server do
     {:reply, result, new_state}
   end
 
-  def handle_call(:get_timezone, _from, state) do
-    timezone = Impl.get_timezone(state)
-    {:reply, timezone, state}
-  end
-
   # AI Chat Callbacks
 
   def handle_call({:chat_with_ai, user_message}, _from, state) do
@@ -102,22 +97,12 @@ defmodule OpenDevCoach.Servers.Session.Server do
     {:reply, result, new_state}
   end
 
-  def handle_call(_request, _from, state) do
-    {:reply, Impl.get_timezone(state), state}
-  end
-
   # Check-in handling
 
   @impl true
   def handle_cast({:handle_checkin, checkin}, state) do
     {_result, new_state} = Impl.handle_checkin(state, checkin)
     {:noreply, new_state}
-  end
-
-  # Configuration Management
-
-  def handle_cast({:update_timezone, timezone}, state) do
-    {:noreply, Impl.update_timezone(state, timezone)}
   end
 
   @impl true

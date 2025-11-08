@@ -120,20 +120,6 @@ defmodule OpenDevCoach.Servers.Session do
     GenServer.call(server_name(), {:reset_config})
   end
 
-  @doc """
-  Updates the session timezone.
-  """
-  def update_timezone(timezone) do
-    GenServer.cast(server_name(), {:update_timezone, timezone})
-  end
-
-  @doc """
-  Gets the session timezone.
-  """
-  def get_timezone do
-    GenServer.call(server_name(), {:get_timezone})
-  end
-
   # AI Chat Functions
 
   @doc """

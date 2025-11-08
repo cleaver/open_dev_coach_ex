@@ -65,7 +65,6 @@ defmodule OpenDevCoach.CLI.Commands do
       • ai_provider  - AI service to use (gemini, openai, anthropic, ollama)
       • ai_model     - Model name for the provider
       • ai_api_key   - API key for external AI services
-      • timezone     - Your local timezone for scheduling check-ins
     """
 
     {:ok, help_text}

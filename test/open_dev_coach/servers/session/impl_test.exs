@@ -13,15 +13,13 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
       assert is_map(state.config)
       assert state.self == OpenDevCoach.Servers.Session
       assert is_list(state.tasks)
-      # Check that timezone is set (either from config or default)
-      assert Map.has_key?(state.config, "timezone")
     end
   end
 
   describe "add_task/2" do
     setup do
       base_state = %{
-        config: %{"timezone" => "America/New_York"},
+        config: %{},
         self: OpenDevCoach.Servers.Session,
         tasks: []
       }
@@ -273,15 +271,15 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "get_config/2" do
     setup do
-      state = %{config: %{"timezone" => "America/New_York", "ai_model" => "gpt-4"}}
+      state = %{config: %{"ai_model" => "gpt-4"}}
       %{state: state}
     end
 
     test "returns configuration value when key exists", %{state: state} do
-      {{:ok, {key, value}}, returned_state} = Impl.get_config(state, "timezone")
+      {{:ok, {key, value}}, returned_state} = Impl.get_config(state, "ai_model")
 
-      assert key == "timezone"
-      assert value == "America/New_York"
+      assert key == "ai_model"
+      assert value == "gpt-4"
       assert returned_state == state
     end
 
@@ -295,7 +293,7 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "set_config/3" do
     setup do
-      state = %{config: %{"timezone" => "America/New_York"}}
+      state = %{config: %{}}
       %{state: state}
     end
 
@@ -324,12 +322,11 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "returns configuration map" do
-      config = %{"timezone" => "America/New_York", "ai_model" => "gpt-4"}
+      config = %{"ai_model" => "gpt-4"}
       state = %{config: config}
       {{:ok, configs}, returned_state} = Impl.list_configs(state)
 
       assert configs == config
-      assert configs["timezone"] == "America/New_York"
       assert configs["ai_model"] == "gpt-4"
       assert returned_state == state
     end
@@ -337,38 +334,13 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "reset_config/1" do
     test "calls Configuration.reset_config and returns result" do
-      state = %{config: %{"timezone" => "America/New_York"}}
+      state = %{config: %{}}
 
       {{:ok, message}, returned_state} = Impl.reset_config(state)
 
       # The actual result depends on the Configuration module
       assert is_binary(message)
       assert returned_state == state
-    end
-  end
-
-  describe "update_timezone/2" do
-    test "updates timezone in session state" do
-      state = %{config: %{"timezone" => "America/New_York"}}
-      new_state = Impl.update_timezone(state, "Europe/London")
-
-      assert new_state.config["timezone"] == "Europe/London"
-    end
-  end
-
-  describe "get_timezone/1" do
-    test "returns timezone when set" do
-      state = %{config: %{"timezone" => "America/New_York"}}
-      {:ok, timezone} = Impl.get_timezone(state)
-
-      assert timezone == "America/New_York"
-    end
-
-    test "returns error when timezone not set" do
-      state = %{config: %{}}
-      {:error, message} = Impl.get_timezone(state)
-
-      assert message == "Session timezone not set."
     end
   end
 

@@ -7,7 +7,8 @@ config :open_dev_coach, OpenDevCoach.Repo,
 
 # Configure timezone for development
 config :open_dev_coach,
-  timezone: "America/New_York"
+  timezone: "America/New_York",
+  test_ai: true
 
 config :logger,
   backends: [{LoggerFileBackend, :file_log}]
