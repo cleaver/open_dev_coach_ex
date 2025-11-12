@@ -188,4 +188,24 @@ defmodule OpenDevCoach.Helpers.Date do
         {:error, "Invalid format. Use HH:MM (e.g., '09:30') or interval (e.g., '2h 30m')"}
     end
   end
+
+  @doc """
+  Formats a datetime as a string in the format "YYYY-MM-DD HH:MMAM/PM".
+
+  ## Parameters
+    - datetime: A DateTime struct
+
+  ## Returns
+    - Formatted string (e.g., "2024-01-15 02:30PM")
+
+  ## Examples
+
+      iex> datetime = Timex.now("America/New_York")
+      iex> formatted = OpenDevCoach.Helpers.Date.format_datetime(datetime)
+      iex> String.contains?(formatted, "-")
+      true
+  """
+  def format_datetime(datetime) do
+    Timex.format!(datetime, "%Y-%m-%d %I:%M%p", :strftime)
+  end
 end

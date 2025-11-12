@@ -7,6 +7,7 @@ defmodule OpenDevCoach.CLI.Views.CheckinView do
   """
 
   alias OpenDevCoach.Checkins.Checkin
+  alias OpenDevCoach.Helpers.Date, as: DateHelper
 
   @doc """
   Formats a list of check-ins for display in the console.
@@ -20,7 +21,7 @@ defmodule OpenDevCoach.CLI.Views.CheckinView do
       _ ->
         checkins
         |> Enum.map_join("\n", fn {checkin, index} ->
-          scheduled_str = Timex.format!(checkin.scheduled_at, "%Y-%m-%d %I:%M%p", :strftime)
+          scheduled_str = DateHelper.format_datetime(checkin.scheduled_at)
           desc = if checkin.description, do: checkin.description, else: ""
           "  #{index}. #{scheduled_str}#{desc} (#{checkin.status})"
         end)
