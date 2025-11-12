@@ -63,16 +63,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       task_list = [
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "First task",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -3)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Second task",
           status: "IN-PROGRESS",
           inserted_at: Timex.shift(now, hours: -2)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Third task",
           status: "COMPLETED",
           inserted_at: Timex.shift(now, hours: -1)
@@ -97,16 +100,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       tasks = [
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 1",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -3)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 2",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -2)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 3",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -1)
@@ -137,16 +143,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
         state
         | tasks: [
             %TaskSchema{
+              id: Ecto.UUID.generate(),
               description: "Task 1",
               status: "IN-PROGRESS",
               inserted_at: Timex.shift(now, hours: -3)
             },
             %TaskSchema{
+              id: Ecto.UUID.generate(),
               description: "Task 2",
               status: "PENDING",
               inserted_at: Timex.shift(now, hours: -2)
             },
             %TaskSchema{
+              id: Ecto.UUID.generate(),
               description: "Task 3",
               status: "PENDING",
               inserted_at: Timex.shift(now, hours: -1)
@@ -189,11 +198,13 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       tasks = [
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 1",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -2)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 2",
           status: "IN-PROGRESS",
           inserted_at: Timex.shift(now, hours: -1)
@@ -228,16 +239,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       tasks = [
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 1",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -3)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 2",
           status: "IN-PROGRESS",
           inserted_at: Timex.shift(now, hours: -2)
         },
         %TaskSchema{
+          id: Ecto.UUID.generate(),
           description: "Task 3",
           status: "COMPLETED",
           inserted_at: Timex.shift(now, hours: -1)
@@ -357,8 +371,8 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
   describe "backup_tasks/1" do
     test "creates backup content with tasks" do
       tasks = [
-        %TaskSchema{description: "Task 1", status: "PENDING"},
-        %TaskSchema{description: "Task 2", status: "COMPLETED"}
+        %TaskSchema{id: Ecto.UUID.generate(), description: "Task 1", status: "PENDING"},
+        %TaskSchema{id: Ecto.UUID.generate(), description: "Task 2", status: "COMPLETED"}
       ]
 
       state = %{tasks: tasks}
@@ -407,7 +421,7 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
     test "handles file write errors" do
       tasks = [
-        %TaskSchema{description: "Task 1", status: "PENDING"}
+        %TaskSchema{id: Ecto.UUID.generate(), description: "Task 1", status: "PENDING"}
       ]
 
       state = %{tasks: tasks}

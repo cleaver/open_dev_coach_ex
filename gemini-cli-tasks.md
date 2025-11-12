@@ -177,10 +177,10 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
   - [x] log error conditions
 - [x] `cli/task_commands.ex`
   - [x] log error conditions
-- [ ] `helpers/persistence.ex`
-  - [ ] add a delete function
+- [x] `helpers/persistence.ex`
+  - [x] add a delete function
 - [ ] `servers/scheduler/impl.ex`
-  - [ ] update remove_checkin to use new function
+  - [x] update remove_checkin to use new function
 - [ ] session genserver
   - [ ] `servers/session.ex`
     - [ ] `test_ai_config()` doesn't do anything
@@ -190,10 +190,11 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
     - [ ] no `test_ai_config` handling
   - [ ] refactor `task`
     - [ ] use persistence functions for updates
+    - [x] use persistence functions for remove
   - [ ] refactor `config`
     - [ ] use persistence functions for add
     - [ ] use persistence functions for updates
-    - [ ] use persistence functions for remove
+    - [ ] ~~use persistence functions for remove~~
   - [ ] refactor `message_history`
     - [ ] use persistence functions for add
   - [ ] deep exploration of ai chat

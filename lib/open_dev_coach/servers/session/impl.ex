@@ -188,11 +188,15 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   Removes a task from the system by task order number.
   """
   def remove_task(state, task_ordinal) do
-    case remove_task_by_ordinal_in_state(state, task_ordinal) do
-      {:ok, new_state} ->
-        if async_persistence?(),
-          do: Task.start(fn -> Tasks.remove_task_by_ordinal(task_ordinal) end),
-          else: Tasks.remove_task_by_ordinal(task_ordinal)
+    case find_task_by_ordinal(state, task_ordinal) do
+      {:ok, task} ->
+        {_task, new_state} =
+          remove_in_memory_and_persist_async(
+            state,
+            task,
+            collection_key: :tasks,
+            persist_function: fn t -> Tasks.remove_task(t.id) end
+          )
 
         new_state
 
@@ -202,24 +206,18 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     end
   end
 
-  defp remove_task_by_ordinal_in_state(state, task_ordinal) when is_integer(task_ordinal) do
+  defp find_task_by_ordinal(state, task_ordinal) when is_integer(task_ordinal) do
     sorted_tasks = sort_tasks_with_ordinal(state)
 
     if task_ordinal < 1 or task_ordinal > length(sorted_tasks) do
       {:error, "Task not found"}
     else
       {task, _ordinal} = Enum.at(sorted_tasks, task_ordinal - 1)
-
-      new_tasks =
-        state
-        |> Map.get(:tasks, [])
-        |> Enum.reject(&task_matches?(&1, task))
-
-      {:ok, %{state | tasks: new_tasks}}
+      {:ok, task}
     end
   end
 
-  defp remove_task_by_ordinal_in_state(_, _) do
+  defp find_task_by_ordinal(_, _) do
     {:error, "Invalid task ordinal"}
   end
 

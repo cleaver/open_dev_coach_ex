@@ -113,28 +113,33 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     - {{:error, reason}, state} on failure
   """
   def remove_checkin(state, checkin_ordinal) do
-    {checkin, new_state} = remove_checkin_from_state(state, checkin_ordinal)
+    case find_checkin_by_ordinal(state, checkin_ordinal) do
+      {:ok, checkin} ->
+        {_checkin, new_state} =
+          remove_in_memory_and_persist_async(
+            state,
+            checkin,
+            collection_key: :checkins,
+            persist_function: &Checkins.delete_checkin/1
+          )
 
-    if async_persistence?(),
-      do: Task.start(fn -> Checkins.delete_checkin(checkin) end),
-      else: Checkins.delete_checkin(checkin)
+        {{:ok, "Check-in removed"}, new_state}
 
-    {{:ok, "Check-in removed"}, new_state}
+      {:error, reason} ->
+        {{:error, reason}, state}
+    end
   end
 
-  defp remove_checkin_from_state(state, checkin_ordinal) when is_integer(checkin_ordinal) do
+  defp find_checkin_by_ordinal(state, checkin_ordinal) when is_integer(checkin_ordinal) do
     sorted_checkins = sort_checkins_with_ordinal(state)
-    {checkin, _ordinal} = Enum.at(sorted_checkins, checkin_ordinal - 1)
 
-    new_checkins =
-      state
-      |> Map.get(:checkins, [])
-      |> Enum.reject(&(&1.id == checkin.id))
-
-    {checkin, %{state | checkins: new_checkins}}
+    case Enum.at(sorted_checkins, checkin_ordinal - 1) do
+      nil -> {:error, "Check-in not found"}
+      {checkin, _ordinal} -> {:ok, checkin}
+    end
   end
 
-  defp remove_checkin_from_state(_, _) do
+  defp find_checkin_by_ordinal(_, _) do
     {:error, "Invalid checkin ordinal"}
   end
 

@@ -122,6 +122,65 @@ defmodule OpenDevCoach.Helpers.Persistence do
   end
 
   @doc """
+  Handles removing an item from a GenServer's state and persisting the deletion asynchronously.
+
+  This function encapsulates the pattern of:
+  1. Removing the item from a collection in the GenServer state.
+  2. Asynchronously persisting the deletion to the database.
+  3. Returning the removed item and the updated state.
+
+  ## Options
+
+    * `collection_key`: (Required) The key in the state map that holds the list of items.
+    * `persist_function`: (Required) A function that takes the item and deletes it from the database.
+    * `id_key`: (Optional) The key in the item struct that holds the unique identifier. Defaults to `:id`.
+    * `match_function`: (Optional) A function that takes two items and returns true if they match.
+                       If not provided, matches by id_key. Useful when items may not have IDs (e.g., in tests).
+
+  ## Example
+
+      {checkin, new_state} =
+        remove_in_memory_and_persist_async(
+          state,
+          checkin,
+          collection_key: :checkins,
+          persist_function: &Checkins.delete_checkin/1
+        )
+
+      {task, new_state} =
+        remove_in_memory_and_persist_async(
+          state,
+          task,
+          collection_key: :tasks,
+          persist_function: fn t -> Tasks.remove_task(t.id) end,
+          match_function: &task_matches?/2
+        )
+  """
+  def remove_in_memory_and_persist_async(state, item, opts) do
+    collection_key = Keyword.fetch!(opts, :collection_key)
+    persist_function = Keyword.fetch!(opts, :persist_function)
+    id_key = Keyword.get(opts, :id_key, :id)
+    match_function = Keyword.get(opts, :match_function)
+
+    collection = Map.get(state, collection_key, [])
+
+    updated_collection =
+      if match_function do
+        Enum.reject(collection, fn i -> match_function.(i, item) end)
+      else
+        item_id = Map.get(item, id_key)
+        Enum.reject(collection, fn i -> Map.get(i, id_key) == item_id and item_id != nil end)
+      end
+
+    if async_persistence?(),
+      do: Task.start(fn -> persist_function.(item) end),
+      else: persist_function.(item)
+
+    new_state = Map.put(state, collection_key, updated_collection)
+    {item, new_state}
+  end
+
+  @doc """
   Checks if async persistence is enabled.
 
   Returns true if async persistence is enabled, false otherwise.
