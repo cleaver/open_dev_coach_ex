@@ -50,7 +50,7 @@ defmodule OpenDevCoach.Helpers.Persistence do
         collection = Map.get(state, collection_key)
         item_id = Map.get(item, id_key)
 
-        updated_collection =
+        {:ok, _updated_item_from_list, updated_collection} =
           ListHelper.update_item_by_match(collection, &(&1 |> Map.get(id_key) == item_id), fn _ ->
             updated_item
           end)

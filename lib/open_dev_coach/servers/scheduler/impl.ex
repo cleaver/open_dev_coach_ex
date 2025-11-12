@@ -130,7 +130,8 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
     end
   end
 
-  defp find_checkin_by_ordinal(state, checkin_ordinal) when is_integer(checkin_ordinal) do
+  defp find_checkin_by_ordinal(state, checkin_ordinal)
+       when is_integer(checkin_ordinal) and checkin_ordinal > 0 do
     sorted_checkins = sort_checkins_with_ordinal(state)
 
     case Enum.at(sorted_checkins, checkin_ordinal - 1) do
