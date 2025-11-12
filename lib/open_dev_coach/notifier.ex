@@ -17,11 +17,15 @@ defmodule OpenDevCoach.Notifier do
   Returns {:ok, "notification sent"} on success or {:error, reason} on failure.
   """
   def notify(title, message) do
-    case detect_platform() do
-      :linux -> notify_linux(title, message)
-      :macos -> notify_macos(title, message)
-      :windows -> notify_windows(title, message)
-      :unknown -> notify_fallback(title, message)
+    if Application.get_env(:open_dev_coach, :notifications_enabled, true) do
+      case detect_platform() do
+        :linux -> notify_linux(title, message)
+        :macos -> notify_macos(title, message)
+        :windows -> notify_windows(title, message)
+        :unknown -> notify_fallback(title, message)
+      end
+    else
+      {:ok, "notifications disabled"}
     end
   end
 

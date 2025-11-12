@@ -6,7 +6,8 @@ config :open_dev_coach, OpenDevCoach.Repo,
 
 config :open_dev_coach,
   ecto_repos: [OpenDevCoach.Repo],
-  async_persistence: false
+  async_persistence: false,
+  notifications_enabled: false
 
 config :logger,
   backends: [{LoggerFileBackend, :file_log}]
