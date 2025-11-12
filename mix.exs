@@ -35,7 +35,7 @@ defmodule OpenDevCoach.MixProject do
       {:logger_file_backend, "~> 0.0.14"},
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:req, "~> 0.4"},
-      {:req_llm, "~> 1.0-rc"},
+      {:req_llm, "~> 1.0"},
       {:timex, "~> 3.0"},
       {:tio_comodo, path: "./tio_comodo"},
       {:tzdata, "~> 1.1"}
