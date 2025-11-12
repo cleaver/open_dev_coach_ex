@@ -47,7 +47,7 @@ defmodule OpenDevCoach.Servers.Scheduler do
   @doc """
   Lists all scheduled check-ins.
 
-  Returns ordered list of check-ins: 
+  Returns ordered list of check-ins:
     {:ok, [ { %Checkin{}, 1 }, { %Checkin{}, 2 } ] }
   """
   @spec list_checkins() :: {:ok, [{Checkin.t(), ordinal :: integer()}]} | {:error, String.t()}
@@ -58,8 +58,14 @@ defmodule OpenDevCoach.Servers.Scheduler do
   @doc """
   Removes a scheduled check-in by ID.
 
-  Returns: {}
+  Parameters:
+    - checkin_ordinal: Ordinal of the check-in to remove
+
+  Returns:
+    - {:ok, message} on success
+    - {:error, reason} on failure
   """
+  @spec remove_checkin(integer()) :: {:ok, String.t()} | {:error, String.t()}
   def remove_checkin(checkin_id) do
     GenServer.call(__MODULE__, {:remove_checkin, checkin_id})
   end

@@ -126,7 +126,7 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 - [ ] Switch everything to UUIDs
     - [ ] tasks
         - [x] generate ID for tasks genserver state
-        - [ ] format with ordinal in same manner as checkins
+        - [x] format with ordinal in same manner as checkins
         - [ ] ensure removal by ordinal works properly
     - [x] checkins
         - [x] generate ID for scheduler genserver state
@@ -162,3 +162,49 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 ### Bugs
 - [x] Order of tasks doesn't match up correctly.
+
+### Refactoring
+- [ ] agent_history/entry - use @required, etc. fn for keywords
+- [ ] ai/model_validator.ex
+  - [ ] decide whether to use `provider:model`
+    - [ ] change in necessary
+- [ ] `cli/views/checkin_view.ex`
+  - [ ] set date standard across app - in config.ex
+- [ ] `cli/checkin_commands.ex`
+  - [ ] log error conditions
+- [ ] `cli/config_commands.ex`
+  - [ ] fix `/config test` doesn't do anything
+  - [ ] log error conditions
+- [ ] `cli/task_commands.ex`
+  - [ ] log error conditions
+- [ ] `helpers/persistence.ex`
+  - [ ] add a delete function
+- [ ] `servers/scheduler/impl.ex`
+  - [ ] update remove_checkin to use new function
+- [ ] session genserver
+  - [ ] `servers/session.ex`
+    - [ ] `test_ai_config()` doesn't do anything
+  - [ ] `servers/session/server.ex`
+    - [ ] `test_ai_config` keep or delete? Call from `/config test`?
+  - [ ] `servers/session/impl.ex`
+    - [ ] no `test_ai_config` handling
+  - [ ] refactor `task`
+    - [ ] use persistence functions for updates
+  - [ ] refactor `config`
+    - [ ] use persistence functions for add
+    - [ ] use persistence functions for updates
+    - [ ] use persistence functions for remove
+  - [ ] refactor `message_history`
+    - [ ] use persistence functions for add
+  - [ ] deep exploration of ai chat
+  - [ ] refactor `handle_successful_ai_response` and `handle_ai_error`
+    - [ ] we can assume checkin.scheduled_at is local time not UTC
+    - [ ] `format_datetime()` can be replaced
+- [ ] `ai.ex`
+  - [ ] log error cases
+  - [ ] 
+- [ ] error logging - search for unlogged error states
+- [ ] Use consistent write-behind pattern
+  - [ ] extend persistence modules
+  - [ ] persistence modules should launch all IO from genservers
+

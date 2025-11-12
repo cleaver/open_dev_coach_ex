@@ -366,14 +366,11 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   def handle_checkin(state, checkin) do
     Logger.info("Processing check-in: #{checkin.id}")
 
-    # Gather context for the AI
     recent_history = AgentHistory.get_recent_history(5)
     current_tasks = Tasks.list_tasks()
 
-    # Build context for AI
     context = build_ai_context(recent_history, current_tasks)
 
-    # Create a check-in specific prompt
     checkin_prompt = """
     It's check-in time! Here's what's happening:
 
@@ -383,10 +380,9 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     Keep your response focused and actionable.
     """
 
-    # Process the check-in with AI
-    process_checkin_with_ai(checkin, checkin_prompt, context, state)
+    process_checkin_with_ai(checkin, checkin_prompt, context)
 
-    {state, state}
+    {{:ok, "Check-in processed"}, state}
   end
 
   @doc """
@@ -484,7 +480,7 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   end
 
   # Private function to handle AI interaction for check-ins
-  defp process_checkin_with_ai(checkin, prompt, context, state) do
+  defp process_checkin_with_ai(checkin, prompt, context) do
     case AI.chat([%{role: "user", content: prompt}], context: context) do
       {:ok, %{text: ai_response_text}} ->
         handle_successful_ai_response(checkin, ai_response_text)

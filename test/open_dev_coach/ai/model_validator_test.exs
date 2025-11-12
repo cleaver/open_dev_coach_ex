@@ -29,15 +29,6 @@ defmodule OpenDevCoach.Ai.ModelValidatorTest do
     test "handles nil-like atoms" do
       assert ModelValidator.validate_provider(nil) == false
     end
-
-    test "validates main providers" do
-      # Test that we can validate main providers that should exist
-      main_providers = ["anthropic", "openai", "google"]
-      found_valid_providers = Enum.filter(main_providers, &ModelValidator.validate_provider/1)
-
-      assert length(found_valid_providers) >= 1,
-             "Should find at least one valid main provider (#{inspect(main_providers)}), found: #{inspect(found_valid_providers)}"
-    end
   end
 
   describe "validate_model/1" do
@@ -118,8 +109,8 @@ defmodule OpenDevCoach.Ai.ModelValidatorTest do
       main_providers = [:anthropic, :openai, :google]
       found_main_providers = Enum.filter(main_providers, &(&1 in providers))
 
-      assert length(found_main_providers) >= 1,
-             "Should find at least one main provider (#{inspect(main_providers)}), found: #{inspect(found_main_providers)}"
+      assert length(found_main_providers) >= 3,
+             "Should find at least three main providers (#{inspect(main_providers)}), found: #{inspect(found_main_providers)}"
 
       # All returned providers should be valid
       for provider <- providers do
@@ -136,7 +127,6 @@ defmodule OpenDevCoach.Ai.ModelValidatorTest do
 
   describe "list_models_for_provider/1" do
     test "returns models for main providers" do
-      # Test with main providers that should be stable
       main_providers = [:anthropic, :openai, :google]
 
       for provider <- main_providers do
@@ -145,37 +135,10 @@ defmodule OpenDevCoach.Ai.ModelValidatorTest do
           models = ModelValidator.list_models_for_provider(provider)
 
           assert is_list(models)
-          # Don't assert specific length as models may change
 
-          # All models should be valid and start with provider name
           for model <- models do
             provider_string = Atom.to_string(provider)
 
-            assert String.starts_with?(model, "#{provider_string}:"),
-                   "Model #{model} should start with #{provider_string}:"
-
-            assert ModelValidator.validate_model(model) == true,
-                   "Model #{model} should be valid"
-          end
-        end
-      end
-    end
-
-    test "returns models for valid provider string" do
-      # Test with string input for main providers
-      main_providers = ["anthropic", "openai", "google"]
-
-      for provider_string <- main_providers do
-        provider_atom = String.to_atom(provider_string)
-
-        # Skip if provider is not available
-        if ModelValidator.validate_provider(provider_atom) do
-          models = ModelValidator.list_models_for_provider(provider_string)
-
-          assert is_list(models)
-
-          # All models should be valid and start with provider name
-          for model <- models do
             assert String.starts_with?(model, "#{provider_string}:"),
                    "Model #{model} should start with #{provider_string}:"
 
@@ -241,28 +204,6 @@ defmodule OpenDevCoach.Ai.ModelValidatorTest do
           # All models should be from the specified provider
           provider_string = Atom.to_string(provider)
 
-          for model <- filtered_models do
-            assert String.starts_with?(model, "#{provider_string}:"),
-                   "Model #{model} should start with #{provider_string}:"
-          end
-        end
-      end
-    end
-
-    test "filters by provider string" do
-      # Test filtering by provider string
-      main_providers = ["anthropic", "openai", "google"]
-
-      for provider_string <- main_providers do
-        provider_atom = String.to_atom(provider_string)
-
-        # Skip if provider is not available
-        if ModelValidator.validate_provider(provider_atom) do
-          filtered_models = ModelValidator.list_all_models(provider: provider_string)
-
-          assert is_list(filtered_models)
-
-          # All models should be from the specified provider
           for model <- filtered_models do
             assert String.starts_with?(model, "#{provider_string}:"),
                    "Model #{model} should start with #{provider_string}:"

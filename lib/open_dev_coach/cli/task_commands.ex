@@ -127,13 +127,9 @@ defmodule OpenDevCoach.CLI.TaskCommands do
     end
   end
 
-  # Private Functions
-
   defp parse_task_number(task_number) do
     case Integer.parse(task_number) do
       {number, ""} when number > 0 ->
-        # The display number is now used directly as the task order
-        # The Session module handles mapping order to actual task ID
         {:ok, number}
 
       _ ->
