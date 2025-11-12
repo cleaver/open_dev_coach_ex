@@ -5,6 +5,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   This module handles all task-related CLI operations including
   adding, listing, starting, completing, removing, and backing up tasks.
   """
+  require Logger
 
   alias OpenDevCoach.CLI.Views.TaskView
   alias OpenDevCoach.Servers.Session
@@ -47,6 +48,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
         {:ok, TaskView.format(tasks)}
 
       {:error, message} ->
+        Logger.error("Failed to add task: #{message}")
         {:error, message}
     end
   end
@@ -62,6 +64,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
         {:ok, TaskView.format(tasks)}
 
       {:error, message} ->
+        Logger.error("Failed to list tasks: #{message}")
         {:error, message}
     end
   end
@@ -81,6 +84,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
         end
 
       {:error, message} ->
+        Logger.error("Failed to start task: #{message}")
         {:error, message}
     end
   end
@@ -97,6 +101,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
         end
 
       {:error, message} ->
+        Logger.error("Failed to complete task: #{message}")
         {:error, message}
     end
   end
@@ -113,6 +118,7 @@ defmodule OpenDevCoach.CLI.TaskCommands do
         end
 
       {:error, message} ->
+        Logger.error("Failed to remove task: #{message}")
         {:error, message}
     end
   end
@@ -122,8 +128,12 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def backup(_args) do
     case Session.backup_tasks() do
-      {:ok, message} -> {:ok, message}
-      {:error, message} -> {:error, message}
+      {:ok, message} ->
+        {:ok, message}
+
+      {:error, message} ->
+        Logger.error("Failed to backup tasks: #{message}")
+        {:error, message}
     end
   end
 

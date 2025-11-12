@@ -5,6 +5,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
   This module provides the check-in command interface, handling scheduling,
   listing, and management of check-ins.
   """
+  require Logger
 
   alias OpenDevCoach.CLI.Views.CheckinView
   alias OpenDevCoach.Servers.Scheduler
@@ -51,6 +52,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
         {:ok, CheckinView.format(checkins)}
 
       {:error, reason} ->
+        Logger.error("Failed to add check-in: #{reason}")
         {:error, "Failed to add check-in: #{reason}"}
     end
   end
@@ -64,6 +66,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
         {:ok, CheckinView.format(checkins)}
 
       {:error, reason} ->
+        Logger.error("Failed to list check-ins: #{reason}")
         {:error, "Failed to list check-ins: #{reason}"}
     end
   end
@@ -77,6 +80,7 @@ defmodule OpenDevCoach.CLI.CheckinCommands do
         {:ok, message}
 
       {:error, reason} ->
+        Logger.error("Failed to remove check-in: #{reason}")
         {:error, "Failed to remove check-in: #{reason}"}
     end
   end

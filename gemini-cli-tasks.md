@@ -164,19 +164,19 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 - [x] Order of tasks doesn't match up correctly.
 
 ### Refactoring
-- [ ] agent_history/entry - use @required, etc. fn for keywords
-- [ ] ai/model_validator.ex
-  - [ ] decide whether to use `provider:model`
-    - [ ] change in necessary
-- [ ] `cli/views/checkin_view.ex`
-  - [ ] set date standard across app - in config.ex
-- [ ] `cli/checkin_commands.ex`
-  - [ ] log error conditions
-- [ ] `cli/config_commands.ex`
-  - [ ] fix `/config test` doesn't do anything
-  - [ ] log error conditions
-- [ ] `cli/task_commands.ex`
-  - [ ] log error conditions
+- [x] agent_history/entry - use @required, etc. fn for keywords
+- [x] ai/model_validator.ex
+  - [x] decide whether to use `provider:model`
+    - [ ] ~~change in necessary~~ No change
+- [x] `cli/views/checkin_view.ex`
+  - [x] set date standard across app - in config.ex
+- [x] `cli/checkin_commands.ex`
+  - [x] log error conditions
+- [x] `cli/config_commands.ex`
+  - [x] fix `/config test` doesn't do anything
+  - [x] log error conditions
+- [x] `cli/task_commands.ex`
+  - [x] log error conditions
 - [ ] `helpers/persistence.ex`
   - [ ] add a delete function
 - [ ] `servers/scheduler/impl.ex`
