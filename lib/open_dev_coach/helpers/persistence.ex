@@ -121,7 +121,13 @@ defmodule OpenDevCoach.Helpers.Persistence do
     {item, new_state}
   end
 
-  defp async_persistence? do
+  @doc """
+  Checks if async persistence is enabled.
+
+  Returns true if async persistence is enabled, false otherwise.
+  Defaults to true if not configured.
+  """
+  def async_persistence? do
     Application.get_env(:open_dev_coach, :async_persistence, true)
   end
 end

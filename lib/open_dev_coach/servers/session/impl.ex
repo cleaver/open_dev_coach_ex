@@ -554,8 +554,4 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
     Notifier.notify(notification_title, notification_message)
   end
-
-  defp async_persistence? do
-    Application.get_env(:open_dev_coach, :async_persistence, true)
-  end
 end

@@ -224,8 +224,4 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
   defp parse_time_or_interval(input) when is_binary(input) do
     DateHelper.parse_time_or_interval(input)
   end
-
-  defp async_persistence? do
-    Application.get_env(:open_dev_coach, :async_persistence, true)
-  end
 end
