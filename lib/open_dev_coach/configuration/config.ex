@@ -7,6 +7,7 @@ defmodule OpenDevCoach.Configuration.Config do
   import Ecto.Changeset
 
   @type t() :: %__MODULE__{
+          id: binary(),
           key: String.t(),
           value: String.t(),
           inserted_at: DateTime.t(),
@@ -14,11 +15,14 @@ defmodule OpenDevCoach.Configuration.Config do
         }
 
   @required_fields [:key, :value]
+  @optional_fields [:id]
+  @all_fields @required_fields ++ @optional_fields
 
   @valid_keys ~w(ai_provider ai_model ai_api_key)
 
   def config_keys, do: @valid_keys
 
+  @primary_key {:id, :binary_id, autogenerate: true}
   schema "configurations" do
     field(:key, :string)
     field(:value, :string)
@@ -36,7 +40,7 @@ defmodule OpenDevCoach.Configuration.Config do
   @doc false
   def changeset(config, attrs) do
     config
-    |> cast(attrs, @required_fields)
+    |> cast(attrs, @all_fields)
     |> validate_required(@required_fields)
     |> validate_length(:key, min: 1, max: 100)
     |> validate_length(:value, min: 1, max: 10_000)
