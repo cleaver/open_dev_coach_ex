@@ -32,7 +32,7 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
       # The init function calls external modules, so we'll test the structure
       state = Impl.init([])
 
-      assert is_map(state.config)
+      assert is_list(state.configs)
       assert state.self == OpenDevCoach.Servers.Session
       assert is_list(state.tasks)
     end
@@ -41,7 +41,7 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
   describe "add_task/2" do
     setup do
       base_state = %{
-        config: %{},
+        configs: [],
         self: OpenDevCoach.Servers.Session,
         tasks: []
       }
@@ -319,7 +319,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "get_config/2" do
     setup do
-      state = %{config: %{"ai_model" => "gpt-4"}}
+      alias OpenDevCoach.Configuration.Config
+
+      configs = [
+        %Config{
+          id: 1,
+          key: "ai_model",
+          value: "gpt-4",
+          inserted_at: ~N[2025-01-01 00:00:00],
+          updated_at: ~N[2025-01-01 00:00:00]
+        }
+      ]
+
+      state = %{configs: configs}
       %{state: state}
     end
 
@@ -341,7 +353,7 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "set_config/3" do
     setup do
-      state = %{config: %{}}
+      state = %{configs: []}
       %{state: state}
     end
 
@@ -349,7 +361,26 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
       {{:ok, message}, new_state} = Impl.set_config(state, "ai_model", "gpt-4")
 
       assert message == "Configuration 'ai_model' set to 'gpt-4'"
-      assert new_state.config["ai_model"] == "gpt-4"
+      assert length(new_state.configs) == 1
+      config = hd(new_state.configs)
+      assert config.key == "ai_model"
+      assert config.value == "gpt-4"
+    end
+
+    test "updates existing configuration", %{state: state} do
+      alias OpenDevCoach.Configuration.Config
+
+      # First set a config
+      {{:ok, _}, state_with_config} = Impl.set_config(state, "ai_model", "gpt-3")
+
+      # Then update it
+      {{:ok, message}, updated_state} = Impl.set_config(state_with_config, "ai_model", "gpt-4")
+
+      assert message == "Configuration 'ai_model' set to 'gpt-4'"
+      assert length(updated_state.configs) == 1
+      config = hd(updated_state.configs)
+      assert config.key == "ai_model"
+      assert config.value == "gpt-4"
     end
 
     test "returns error for invalid configuration", %{state: state} do
@@ -362,7 +393,7 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "list_configs/1" do
     test "returns empty map for empty configuration" do
-      state = %{config: %{}}
+      state = %{configs: []}
       {{:ok, configs}, returned_state} = Impl.list_configs(state)
 
       assert configs == %{}
@@ -370,25 +401,48 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "returns configuration map" do
-      config = %{"ai_model" => "gpt-4"}
-      state = %{config: config}
-      {{:ok, configs}, returned_state} = Impl.list_configs(state)
+      alias OpenDevCoach.Configuration.Config
 
-      assert configs == config
-      assert configs["ai_model"] == "gpt-4"
+      configs = [
+        %Config{
+          id: 1,
+          key: "ai_model",
+          value: "gpt-4",
+          inserted_at: ~N[2025-01-01 00:00:00],
+          updated_at: ~N[2025-01-01 00:00:00]
+        }
+      ]
+
+      state = %{configs: configs}
+      {{:ok, config_map}, returned_state} = Impl.list_configs(state)
+
+      assert config_map == %{"ai_model" => "gpt-4"}
+      assert config_map["ai_model"] == "gpt-4"
       assert returned_state == state
     end
   end
 
   describe "reset_config/1" do
     test "calls Configuration.reset_config and returns result" do
-      state = %{config: %{}}
+      alias OpenDevCoach.Configuration.Config
+
+      configs = [
+        %Config{
+          id: 1,
+          key: "ai_model",
+          value: "gpt-4",
+          inserted_at: ~N[2025-01-01 00:00:00],
+          updated_at: ~N[2025-01-01 00:00:00]
+        }
+      ]
+
+      state = %{configs: configs}
 
       {{:ok, message}, returned_state} = Impl.reset_config(state)
 
       # The actual result depends on the Configuration module
       assert is_binary(message)
-      assert returned_state == state
+      assert returned_state.configs == []
     end
   end
 

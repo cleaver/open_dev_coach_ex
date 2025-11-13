@@ -191,9 +191,9 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
   - [x] refactor `task`
     - [x] use persistence functions for updates
     - [x] use persistence functions for remove
-  - [ ] refactor `config`
-    - [ ] use persistence functions for add
-    - [ ] use persistence functions for updates
+  - [x] refactor `config`
+    - [x] use persistence functions for add
+    - [x] use persistence functions for updates
     - [ ] ~~use persistence functions for remove~~
   - [ ] refactor `message_history`
     - [ ] use persistence functions for add

@@ -8,8 +8,6 @@ defmodule OpenDevCoach.Configuration do
   """
   require Logger
 
-  import Ecto.Query
-
   alias OpenDevCoach.Configuration.Config
   alias OpenDevCoach.Repo
 
@@ -23,6 +21,32 @@ defmodule OpenDevCoach.Configuration do
       nil -> nil
       config -> config.value
     end
+  end
+
+  @doc """
+  Prepares an update changeset for configuration.
+  This is the "validation" step.
+  """
+  def prepare_update_changeset(%Config{} = config, attrs) do
+    Config.changeset(config, attrs)
+  end
+
+  @doc """
+  Applies a valid changeset and returns the new struct.
+  Use this for in-memory state updates.
+  """
+  def apply_update_changeset(%Ecto.Changeset{valid?: true} = changeset) do
+    Ecto.Changeset.apply_action!(changeset, :update)
+  end
+
+  def apply_update_changeset(%Ecto.Changeset{} = changeset), do: {:error, changeset}
+
+  @doc """
+  Persists a changeset to the database.
+  This is the "persistence" step for an async Task.
+  """
+  def persist_update_changeset(%Ecto.Changeset{} = changeset) do
+    Repo.update(changeset)
   end
 
   @doc """
@@ -50,15 +74,20 @@ defmodule OpenDevCoach.Configuration do
   end
 
   @doc """
-  Lists all current configuration settings.
-
-  Returns a map of configuration keys to values.
+  Lists all configuration entries as a list of Config structs.
+  Used for GenServer state management.
   """
   def list_configs do
-    Config
-    |> select([c], {c.key, c.value})
-    |> Repo.all()
-    |> Map.new()
+    Repo.all(Config)
+  end
+
+  @doc """
+  Creates a new configuration entry.
+  """
+  def create_config(attrs \\ %{}) do
+    %Config{}
+    |> Config.changeset(attrs)
+    |> Repo.insert()
   end
 
   @doc """
