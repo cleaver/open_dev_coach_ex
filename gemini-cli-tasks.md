@@ -188,8 +188,8 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
     - [ ] `test_ai_config` keep or delete? Call from `/config test`?
   - [ ] `servers/session/impl.ex`
     - [ ] no `test_ai_config` handling
-  - [ ] refactor `task`
-    - [ ] use persistence functions for updates
+  - [x] refactor `task`
+    - [x] use persistence functions for updates
     - [x] use persistence functions for remove
   - [ ] refactor `config`
     - [ ] use persistence functions for add

@@ -4,6 +4,28 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
   alias OpenDevCoach.Servers.Session.Impl
   alias OpenDevCoach.Tasks.Task, as: TaskSchema
 
+  # Helper function to compare DateTime or NaiveDateTime values
+  defp compare_datetime(dt1, dt2) do
+    cond do
+      match?(%DateTime{}, dt1) and match?(%DateTime{}, dt2) ->
+        DateTime.compare(dt1, dt2)
+
+      match?(%NaiveDateTime{}, dt1) and match?(%NaiveDateTime{}, dt2) ->
+        NaiveDateTime.compare(dt1, dt2)
+
+      match?(%NaiveDateTime{}, dt1) ->
+        dt1_as_dt = DateTime.from_naive!(dt1, "Etc/UTC")
+        DateTime.compare(dt1_as_dt, dt2)
+
+      match?(%NaiveDateTime{}, dt2) ->
+        dt2_as_dt = DateTime.from_naive!(dt2, "Etc/UTC")
+        DateTime.compare(dt1, dt2_as_dt)
+
+      true ->
+        NaiveDateTime.compare(DateTime.to_naive(dt1), DateTime.to_naive(dt2))
+    end
+  end
+
   describe "init/1" do
     test "initializes session state with proper structure" do
       # This test will use the actual modules since we're testing the implementation
@@ -96,29 +118,36 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "start_task/2" do
     setup do
+      alias OpenDevCoach.Tasks
+
       now = Timex.now()
 
-      tasks = [
-        %TaskSchema{
+      # Persist tasks to database first
+      {:ok, task1} =
+        Tasks.create_task(%{
           id: Ecto.UUID.generate(),
           description: "Task 1",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -3)
-        },
-        %TaskSchema{
+        })
+
+      {:ok, task2} =
+        Tasks.create_task(%{
           id: Ecto.UUID.generate(),
           description: "Task 2",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -2)
-        },
-        %TaskSchema{
+        })
+
+      {:ok, task3} =
+        Tasks.create_task(%{
           id: Ecto.UUID.generate(),
           description: "Task 3",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -1)
-        }
-      ]
+        })
 
+      tasks = [task1, task2, task3]
       state = %{tasks: tasks}
       %{state: state}
     end
@@ -128,7 +157,10 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       # Ordinal 2 is Task 2 (second newest), which should be at index 1 in sorted order
       sorted_tasks =
-        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+        new_state.tasks
+        |> Enum.sort(fn t1, t2 ->
+          compare_datetime(t1.inserted_at, t2.inserted_at) == :gt
+        end)
 
       assert Enum.at(sorted_tasks, 1).status == "IN-PROGRESS"
       assert Enum.at(sorted_tasks, 1).description == "Task 2"
@@ -136,31 +168,19 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
     end
 
     test "puts other IN-PROGRESS tasks on hold", %{state: state} do
-      # First set Task 1 to IN-PROGRESS
-      now = Timex.now()
+      alias OpenDevCoach.Tasks
 
+      # First set Task 1 to IN-PROGRESS in the database
+      task1 = Enum.find(state.tasks, &(&1.description == "Task 1"))
+      {:ok, updated_task1} = Tasks.update_task_status(task1.id, "IN-PROGRESS")
+
+      # Update state to reflect the change
       state_with_progress = %{
         state
-        | tasks: [
-            %TaskSchema{
-              id: Ecto.UUID.generate(),
-              description: "Task 1",
-              status: "IN-PROGRESS",
-              inserted_at: Timex.shift(now, hours: -3)
-            },
-            %TaskSchema{
-              id: Ecto.UUID.generate(),
-              description: "Task 2",
-              status: "PENDING",
-              inserted_at: Timex.shift(now, hours: -2)
-            },
-            %TaskSchema{
-              id: Ecto.UUID.generate(),
-              description: "Task 3",
-              status: "PENDING",
-              inserted_at: Timex.shift(now, hours: -1)
-            }
-          ]
+        | tasks:
+            Enum.map(state.tasks, fn task ->
+              if task.id == task1.id, do: updated_task1, else: task
+            end)
       }
 
       {{:ok, tasks}, new_state} = Impl.start_task(state_with_progress, 2)
@@ -168,7 +188,10 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
       # Ordinal 2 is Task 2, which should become IN-PROGRESS
       # Task 1 should be put on hold
       sorted_tasks =
-        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+        new_state.tasks
+        |> Enum.sort(fn t1, t2 ->
+          compare_datetime(t1.inserted_at, t2.inserted_at) == :gt
+        end)
 
       task1 = Enum.find(sorted_tasks, &(&1.description == "Task 1"))
       task2 = Enum.find(sorted_tasks, &(&1.description == "Task 2"))
@@ -194,23 +217,28 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
   describe "complete_task/2" do
     setup do
+      alias OpenDevCoach.Tasks
+
       now = Timex.now()
 
-      tasks = [
-        %TaskSchema{
+      # Persist tasks to database first
+      {:ok, task1} =
+        Tasks.create_task(%{
           id: Ecto.UUID.generate(),
           description: "Task 1",
           status: "PENDING",
           inserted_at: Timex.shift(now, hours: -2)
-        },
-        %TaskSchema{
+        })
+
+      {:ok, task2} =
+        Tasks.create_task(%{
           id: Ecto.UUID.generate(),
           description: "Task 2",
           status: "IN-PROGRESS",
           inserted_at: Timex.shift(now, hours: -1)
-        }
-      ]
+        })
 
+      tasks = [task1, task2]
       state = %{tasks: tasks}
       %{state: state}
     end
@@ -220,7 +248,10 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
 
       # Ordinal 1 is Task 2 (newest), which should be completed
       sorted_tasks =
-        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+        new_state.tasks
+        |> Enum.sort(fn t1, t2 ->
+          compare_datetime(t1.inserted_at, t2.inserted_at) == :gt
+        end)
 
       assert hd(sorted_tasks).status == "COMPLETED"
       assert hd(sorted_tasks).description == "Task 2"
@@ -269,7 +300,10 @@ defmodule OpenDevCoach.Servers.Session.ImplTest do
       # Ordinal 2 is Task 2, which should be removed
       # Remaining tasks should be Task 1 and Task 3
       sorted_tasks =
-        new_state.tasks |> Enum.sort(&(DateTime.compare(&1.inserted_at, &2.inserted_at) == :gt))
+        new_state.tasks
+        |> Enum.sort(fn t1, t2 ->
+          compare_datetime(t1.inserted_at, t2.inserted_at) == :gt
+        end)
 
       assert length(sorted_tasks) == 2
       assert Enum.at(sorted_tasks, 0).description == "Task 3"

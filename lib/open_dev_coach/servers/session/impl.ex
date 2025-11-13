@@ -88,45 +88,43 @@ defmodule OpenDevCoach.Servers.Session.Impl do
           {{:ok, list({Task.t(), integer()})}, session_state()}
           | {{:error, String.t()}, session_state()}
   def start_task(state, task_ordinal) do
-    case update_task_by_ordinal_in_state(state, task_ordinal, "IN-PROGRESS") do
-      {:ok, new_state} ->
-        if async_persistence?(),
-          do: Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS") end),
-          else: Tasks.update_task_by_ordinal(task_ordinal, "IN-PROGRESS")
+    case find_task_by_ordinal(state, task_ordinal) do
+      {:ok, task} ->
+        # Find tasks that need to be put on hold (before state update)
+        tasks_to_put_on_hold = find_tasks_to_put_on_hold(state, task)
 
-        {{:ok, tasks}, _} = list_tasks(new_state)
-        {{:ok, tasks}, new_state}
+        # Put other tasks on hold in memory
+        state_with_hold = put_other_tasks_on_hold_in_state(state, task)
+
+        # Update the target task using persistence helper
+        attrs = %{status: "IN-PROGRESS"}
+        attrs = maybe_add_started_at_timestamp(attrs)
+
+        case update_in_memory_and_persist_async(
+               state_with_hold,
+               task,
+               attrs,
+               collection_key: :tasks,
+               prepare_changeset: &Tasks.prepare_update_changeset/2,
+               apply_changeset: &Tasks.apply_update_changeset/1,
+               persist_changeset: &Tasks.persist_update_changeset/1
+             ) do
+          {_updated_task, new_state} when is_map(new_state) ->
+            # Also persist the "put on hold" changes for other tasks
+            persist_tasks_on_hold(tasks_to_put_on_hold)
+
+            {{:ok, tasks}, _} = list_tasks(new_state)
+            {{:ok, tasks}, new_state}
+
+          {:error, _state} ->
+            Logger.error("Failed to update task: invalid changeset")
+            {{:error, "Failed to update task"}, state}
+        end
 
       {:error, reason} ->
         Logger.error("Failed to start task: #{reason}")
         {{:error, reason}, state}
     end
-  end
-
-  defp update_task_by_ordinal_in_state(state, task_ordinal, status)
-       when is_integer(task_ordinal) do
-    sorted_tasks = sort_tasks_with_ordinal(state)
-
-    if task_ordinal < 1 or task_ordinal > length(sorted_tasks) do
-      {:error, "Task not found"}
-    else
-      {task, _ordinal} = Enum.at(sorted_tasks, task_ordinal - 1)
-
-      new_tasks =
-        state
-        |> Map.get(:tasks, [])
-        |> maybe_put_other_tasks_on_hold("IN-PROGRESS")
-        |> Enum.map(fn t ->
-          if task_matches?(t, task), do: %{task | status: status}, else: t
-        end)
-
-      {:ok, %{state | tasks: new_tasks}}
-    end
-  end
-
-  defp update_task_by_ordinal_in_state(_, _, _) do
-    Logger.error("Invalid task number")
-    {:error, "Invalid task number"}
   end
 
   defp sort_tasks_with_ordinal(state) do
@@ -141,10 +139,44 @@ defmodule OpenDevCoach.Servers.Session.Impl do
 
   defp compare_tasks_desc(task1, task2) do
     case {task1.inserted_at, task2.inserted_at} do
-      {nil, nil} -> false
-      {nil, _} -> false
-      {_, nil} -> true
-      {dt1, dt2} -> DateTime.compare(dt1, dt2) == :gt
+      {nil, nil} ->
+        false
+
+      {nil, _} ->
+        false
+
+      {_, nil} ->
+        true
+
+      {dt1, dt2} ->
+        # Handle both DateTime and NaiveDateTime
+        comparison =
+          cond do
+            match?(%DateTime{}, dt1) and match?(%DateTime{}, dt2) ->
+              DateTime.compare(dt1, dt2)
+
+            match?(%NaiveDateTime{}, dt1) and match?(%NaiveDateTime{}, dt2) ->
+              NaiveDateTime.compare(dt1, dt2)
+
+            match?(%NaiveDateTime{}, dt1) ->
+              # Convert NaiveDateTime to DateTime for comparison
+              dt1_as_dt = DateTime.from_naive!(dt1, "Etc/UTC")
+              DateTime.compare(dt1_as_dt, dt2)
+
+            match?(%NaiveDateTime{}, dt2) ->
+              # Convert NaiveDateTime to DateTime for comparison
+              dt2_as_dt = DateTime.from_naive!(dt2, "Etc/UTC")
+              DateTime.compare(dt1, dt2_as_dt)
+
+            true ->
+              # Fallback: convert both to comparable format
+              NaiveDateTime.compare(
+                DateTime.to_naive(dt1),
+                DateTime.to_naive(dt2)
+              )
+          end
+
+        comparison == :gt
     end
   end
 
@@ -157,26 +189,83 @@ defmodule OpenDevCoach.Servers.Session.Impl do
     end
   end
 
-  defp maybe_put_other_tasks_on_hold(tasks, "IN-PROGRESS") do
-    Enum.map(tasks, fn task ->
-      if task.status == "IN-PROGRESS", do: %{task | status: "ON-HOLD"}, else: task
+  defp put_other_tasks_on_hold_in_state(state, target_task) do
+    tasks = Map.get(state, :tasks, [])
+
+    updated_tasks =
+      Enum.map(tasks, fn task ->
+        if task.status == "IN-PROGRESS" and not task_matches?(task, target_task) do
+          %{task | status: "ON-HOLD"}
+        else
+          task
+        end
+      end)
+
+    %{state | tasks: updated_tasks}
+  end
+
+  defp find_tasks_to_put_on_hold(state, target_task) do
+    tasks = Map.get(state, :tasks, [])
+
+    Enum.filter(tasks, fn task ->
+      task.status == "IN-PROGRESS" and not task_matches?(task, target_task)
     end)
   end
 
-  defp maybe_put_other_tasks_on_hold(tasks, _status), do: tasks
+  defp persist_tasks_on_hold(tasks_to_put_on_hold) do
+    Enum.each(tasks_to_put_on_hold, fn task ->
+      if async_persistence?() do
+        Task.start(fn ->
+          Tasks.update_task_status(task.id, "ON-HOLD")
+        end)
+      else
+        Tasks.update_task_status(task.id, "ON-HOLD")
+      end
+    end)
+  end
+
+  defp maybe_add_started_at_timestamp(attrs) do
+    if attrs.status == "IN-PROGRESS" do
+      Map.put(attrs, :started_at, Timex.now())
+    else
+      attrs
+    end
+  end
+
+  defp maybe_add_completed_at_timestamp(attrs) do
+    if attrs.status == "COMPLETED" do
+      Map.put(attrs, :completed_at, Timex.now())
+    else
+      attrs
+    end
+  end
 
   @doc """
   Completes a task (marks as COMPLETED) by task order number.
   """
   @spec complete_task(session_state(), integer()) :: {String.t(), session_state()}
   def complete_task(state, task_ordinal) do
-    case update_task_by_ordinal_in_state(state, task_ordinal, "COMPLETED") do
-      {:ok, new_state} ->
-        if async_persistence?(),
-          do: Task.start(fn -> Tasks.update_task_by_ordinal(task_ordinal, "COMPLETED") end),
-          else: Tasks.update_task_by_ordinal(task_ordinal, "COMPLETED")
+    case find_task_by_ordinal(state, task_ordinal) do
+      {:ok, task} ->
+        attrs = %{status: "COMPLETED"}
+        attrs = maybe_add_completed_at_timestamp(attrs)
 
-        new_state
+        case update_in_memory_and_persist_async(
+               state,
+               task,
+               attrs,
+               collection_key: :tasks,
+               prepare_changeset: &Tasks.prepare_update_changeset/2,
+               apply_changeset: &Tasks.apply_update_changeset/1,
+               persist_changeset: &Tasks.persist_update_changeset/1
+             ) do
+          {_updated_task, new_state} when is_map(new_state) ->
+            new_state
+
+          {:error, _state} ->
+            Logger.error("Failed to complete task: invalid changeset")
+            state
+        end
 
       {:error, reason} ->
         Logger.error("Failed to complete task: #{reason}")
