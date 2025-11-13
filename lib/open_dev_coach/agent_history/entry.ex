@@ -6,14 +6,16 @@ defmodule OpenDevCoach.AgentHistory.Entry do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :binary_id, autogenerate: true}
+
   @type t() :: %__MODULE__{
-          id: integer(),
+          id: binary(),
           role: String.t(),
           content: String.t(),
           timestamp: DateTime.t()
         }
 
-  @required_fields [:id, :role, :content, :timestamp]
+  @required_fields [:role, :content, :timestamp]
 
   schema "agent_history" do
     field(:role, :string)
