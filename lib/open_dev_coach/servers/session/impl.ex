@@ -16,7 +16,6 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   alias OpenDevCoach.AI
   alias OpenDevCoach.Configuration
   alias OpenDevCoach.Configuration.Config
-  alias OpenDevCoach.Helpers.Changeset, as: ChangesetHelper
   alias OpenDevCoach.Notifier
   alias OpenDevCoach.Tasks
   alias OpenDevCoach.Tasks.Task, as: TaskSchema
@@ -346,57 +345,49 @@ defmodule OpenDevCoach.Servers.Session.Impl do
   @doc """
   Sets a configuration key-value pair.
   """
-  def set_config(state, key, value) do
+  def set_config(state, "", _value) do
+    {{:error, "key can't be blank"}, state}
+  end
+
+  def set_config(state, key, value) when is_binary(key) do
     configs = Map.get(state, :configs, [])
+    attrs = %{key: key, value: value}
 
     case Enum.find(configs, &(&1.key == key)) do
       nil ->
         # Config doesn't exist, add it
-        # Validate changeset before adding to state
-        temp_config = %Config{}
-        changeset = Config.changeset(temp_config, %{key: key, value: value})
+        {_config, new_state} =
+          add_in_memory_and_persist_async(
+            state,
+            attrs,
+            collection_key: :configs,
+            struct_module: Config,
+            persist_function: &Configuration.create_config/1
+          )
 
-        if changeset.valid? do
-          attrs = %{key: key, value: value}
-
-          case add_in_memory_and_persist_async(
-                 state,
-                 attrs,
-                 collection_key: :configs,
-                 struct_module: Config,
-                 persist_function: &Configuration.create_config/1
-               ) do
-            {_config, new_state} ->
-              message = "Configuration '#{key}' set to '#{value}'"
-              {{:ok, message}, new_state}
-          end
-        else
-          error_message = ChangesetHelper.format_changeset_errors(changeset)
-          {{:error, error_message}, state}
-        end
+        message = "Configuration '#{key}' set to '#{value}'"
+        {{:ok, message}, new_state}
 
       existing_config ->
         # Config exists, update it
-        attrs = %{value: value}
+        {_updated_config, new_state} =
+          update_in_memory_and_persist_async(
+            state,
+            existing_config,
+            attrs,
+            collection_key: :configs,
+            prepare_changeset: &Configuration.prepare_update_changeset/2,
+            apply_changeset: &Configuration.apply_update_changeset/1,
+            persist_changeset: &Configuration.persist_update_changeset/1
+          )
 
-        case update_in_memory_and_persist_async(
-               state,
-               existing_config,
-               attrs,
-               collection_key: :configs,
-               prepare_changeset: &Configuration.prepare_update_changeset/2,
-               apply_changeset: &Configuration.apply_update_changeset/1,
-               persist_changeset: &Configuration.persist_update_changeset/1
-             ) do
-          {_updated_config, new_state} ->
-            message = "Configuration '#{key}' set to '#{value}'"
-            {{:ok, message}, new_state}
-
-          {:error, _state} ->
-            Logger.error("Failed to update config: invalid changeset")
-            {{:error, "Failed to update configuration"}, state}
-        end
+        message = "Configuration '#{key}' set to '#{value}'"
+        {{:ok, message}, new_state}
     end
+  end
+
+  def set_config(state, _, _) do
+    {{:error, "Invalid key"}, state}
   end
 
   @doc """
