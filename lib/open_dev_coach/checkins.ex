@@ -121,9 +121,11 @@ defmodule OpenDevCoach.Checkins do
   def mark_past_scheduled_checkins_as_skipped do
     now = DateTime.utc_now()
 
-    Checkin
-    |> where([c], c.status == "SCHEDULED" and c.scheduled_at < ^now)
-    |> Repo.update_all(set: [status: "SKIPPED"])
+    RepoHelper.retry_with_backoff(fn ->
+      Checkin
+      |> where([c], c.status == "SCHEDULED" and c.scheduled_at < ^now)
+      |> Repo.update_all(set: [status: "SKIPPED"])
+    end)
   end
 
   @doc """

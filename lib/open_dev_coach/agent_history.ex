@@ -8,6 +8,7 @@ defmodule OpenDevCoach.AgentHistory do
 
   import Ecto.Query
   alias OpenDevCoach.AgentHistory.Entry
+  alias OpenDevCoach.Helpers.Repo, as: RepoHelper
   alias OpenDevCoach.Repo
 
   @doc """
@@ -22,13 +23,15 @@ defmodule OpenDevCoach.AgentHistory do
     - `{:error, changeset}` on failure
   """
   def add_conversation(role, content) when is_binary(role) and is_binary(content) do
-    %Entry{}
-    |> Entry.changeset(%{
-      role: role,
-      content: content,
-      timestamp: DateTime.utc_now()
-    })
-    |> Repo.insert()
+    RepoHelper.retry_with_backoff(fn ->
+      %Entry{}
+      |> Entry.changeset(%{
+        role: role,
+        content: content,
+        timestamp: DateTime.utc_now()
+      })
+      |> Repo.insert()
+    end)
   end
 
   @doc """
@@ -90,7 +93,9 @@ defmodule OpenDevCoach.AgentHistory do
   def cleanup_old_history(days \\ 30) do
     cutoff_date = DateTime.utc_now() |> DateTime.add(-days * 24 * 60 * 60, :second)
 
-    from(e in Entry, where: e.timestamp < ^cutoff_date)
-    |> Repo.delete_all()
+    RepoHelper.retry_with_backoff(fn ->
+      from(e in Entry, where: e.timestamp < ^cutoff_date)
+      |> Repo.delete_all()
+    end)
   end
 end
