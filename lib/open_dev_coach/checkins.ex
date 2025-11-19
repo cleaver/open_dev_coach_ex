@@ -12,6 +12,7 @@ defmodule OpenDevCoach.Checkins do
   import Ecto.Query
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
+  alias OpenDevCoach.Helpers.Repo, as: RepoHelper
   alias OpenDevCoach.Repo
 
   @doc """
@@ -39,7 +40,9 @@ defmodule OpenDevCoach.Checkins do
   This is the "persistence" step for an async Task.
   """
   def persist_update_changeset(%Ecto.Changeset{} = changeset) do
-    Repo.update(changeset)
+    RepoHelper.retry_with_backoff(fn ->
+      Repo.update(changeset)
+    end)
   end
 
   @doc """
@@ -52,9 +55,11 @@ defmodule OpenDevCoach.Checkins do
       |> maybe_generate_id()
       |> convert_local_to_utc()
 
-    %Checkin{}
-    |> Checkin.changeset(attrs)
-    |> Repo.insert()
+    RepoHelper.retry_with_backoff(fn ->
+      %Checkin{}
+      |> Checkin.changeset(attrs)
+      |> Repo.insert()
+    end)
     |> case do
       {:ok, checkin} -> {:ok, convert_utc_to_local(checkin)}
       error -> error
@@ -140,7 +145,9 @@ defmodule OpenDevCoach.Checkins do
   Deletes a check-in.
   """
   def delete_checkin(%Checkin{} = checkin) do
-    Repo.delete(checkin)
+    RepoHelper.retry_with_backoff(fn ->
+      Repo.delete(checkin)
+    end)
   end
 
   @doc """
