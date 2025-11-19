@@ -29,16 +29,20 @@ defmodule OpenDevCoach.DataCase do
   end
 
   setup tags do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(OpenDevCoach.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OpenDevCoach.Repo)
 
+    unless tags[:async] do
+      Ecto.Adapters.SQL.Sandbox.mode(OpenDevCoach.Repo, {:shared, self()})
+    end
+
+    owner = self()
     servers_to_allow = [OpenDevCoach.Servers.Session, OpenDevCoach.Servers.Scheduler]
 
     Enum.each(servers_to_allow, fn server ->
       server_pid = Process.whereis(server)
 
       if server_pid do
-        Ecto.Adapters.SQL.Sandbox.allow(OpenDevCoach.Repo, pid, server_pid)
+        Ecto.Adapters.SQL.Sandbox.allow(OpenDevCoach.Repo, owner, server_pid)
       end
     end)
 
