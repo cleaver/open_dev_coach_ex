@@ -81,10 +81,11 @@ defmodule OpenDevCoach.Servers.Scheduler.ImplTest do
     end
 
     test "adds multiple check-ins and sorts them correctly", %{state: state} do
-      # Add check-ins in non-chronological order
-      {{:ok, _checkin1, _}, state1} = Impl.add_checkin(state, "15:00", "Third")
-      {{:ok, _checkin2, _}, state2} = Impl.add_checkin(state1, "09:00", "First")
-      {{:ok, _checkin3, _}, state3} = Impl.add_checkin(state2, "12:00", "Second")
+      # Add check-ins in non-chronological order using intervals relative to current time
+      # This ensures consistent sorting regardless of what time of day the test runs
+      {{:ok, _checkin1, _}, state1} = Impl.add_checkin(state, "3h", "Third")
+      {{:ok, _checkin2, _}, state2} = Impl.add_checkin(state1, "1h", "First")
+      {{:ok, _checkin3, _}, state3} = Impl.add_checkin(state2, "2h", "Second")
 
       {{:ok, sorted_checkins}, _final_state} = Impl.list_checkins(state3)
 
