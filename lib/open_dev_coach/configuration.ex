@@ -9,7 +9,6 @@ defmodule OpenDevCoach.Configuration do
   require Logger
 
   alias OpenDevCoach.Configuration.Config
-  alias OpenDevCoach.Helpers.Repo, as: RepoHelper
   alias OpenDevCoach.Repo
 
   @doc """
@@ -47,9 +46,7 @@ defmodule OpenDevCoach.Configuration do
   This is the "persistence" step for an async Task.
   """
   def persist_update_changeset(%Ecto.Changeset{} = changeset) do
-    RepoHelper.retry_with_backoff(fn ->
-      Repo.update(changeset)
-    end)
+    Repo.update(changeset)
   end
 
   @doc """
@@ -65,18 +62,14 @@ defmodule OpenDevCoach.Configuration do
   defp set_config_internal(key, value) when is_binary(key) and is_binary(value) do
     case Repo.get_by(Config, key: key) do
       nil ->
-        RepoHelper.retry_with_backoff(fn ->
-          %Config{}
-          |> Config.changeset(%{key: key, value: value})
-          |> Repo.insert()
-        end)
+        %Config{}
+        |> Config.changeset(%{key: key, value: value})
+        |> Repo.insert()
 
       existing_config ->
-        RepoHelper.retry_with_backoff(fn ->
-          existing_config
-          |> Config.changeset(%{value: value})
-          |> Repo.update()
-        end)
+        existing_config
+        |> Config.changeset(%{value: value})
+        |> Repo.update()
     end
   end
 
@@ -92,11 +85,9 @@ defmodule OpenDevCoach.Configuration do
   Creates a new configuration entry.
   """
   def create_config(attrs \\ %{}) do
-    RepoHelper.retry_with_backoff(fn ->
-      %Config{}
-      |> Config.changeset(attrs)
-      |> Repo.insert()
-    end)
+    %Config{}
+    |> Config.changeset(attrs)
+    |> Repo.insert()
   end
 
   @doc """
@@ -105,10 +96,8 @@ defmodule OpenDevCoach.Configuration do
   This removes all custom configurations from the database.
   """
   def reset_config do
-    RepoHelper.retry_with_backoff(fn ->
-      Config
-      |> Repo.delete_all()
-    end)
+    Config
+    |> Repo.delete_all()
 
     {:ok, "All configurations have been reset"}
   end

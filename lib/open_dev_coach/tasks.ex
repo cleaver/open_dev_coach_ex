@@ -8,7 +8,6 @@ defmodule OpenDevCoach.Tasks do
 
   import Ecto.Query
   alias OpenDevCoach.Helpers.Date, as: DateHelper
-  alias OpenDevCoach.Helpers.Repo, as: RepoHelper
   alias OpenDevCoach.Repo
   alias OpenDevCoach.Tasks.Task
 
@@ -36,9 +35,7 @@ defmodule OpenDevCoach.Tasks do
   This is the "persistence" step for an async Task.
   """
   def persist_update_changeset(%Ecto.Changeset{} = changeset) do
-    RepoHelper.retry_with_backoff(fn ->
-      Repo.update(changeset)
-    end)
+    Repo.update(changeset)
   end
 
   @doc """
@@ -50,10 +47,8 @@ defmodule OpenDevCoach.Tasks do
       |> maybe_generate_id()
       |> convert_local_to_utc()
 
-    RepoHelper.retry_with_backoff(fn ->
-      Task.changeset(%Task{}, attrs)
-      |> Repo.insert()
-    end)
+    Task.changeset(%Task{}, attrs)
+    |> Repo.insert()
     |> case do
       {:ok, task} -> {:ok, convert_utc_to_local(task)}
       error -> error
@@ -111,33 +106,31 @@ defmodule OpenDevCoach.Tasks do
   automatically puts all other IN-PROGRESS tasks on hold.
   """
   def update_task_status(task_id, new_status) when is_binary(task_id) do
-    RepoHelper.retry_with_backoff(fn ->
-      Repo.transaction(fn ->
-        # If setting to IN-PROGRESS, put other tasks on hold
-        if new_status == "IN-PROGRESS" do
-          from(t in Task, where: t.status == "IN-PROGRESS")
-          |> Repo.update_all(set: [status: "ON-HOLD"])
-        end
+    Repo.transaction(fn ->
+      # If setting to IN-PROGRESS, put other tasks on hold
+      if new_status == "IN-PROGRESS" do
+        from(t in Task, where: t.status == "IN-PROGRESS")
+        |> Repo.update_all(set: [status: "ON-HOLD"])
+      end
 
-        # Update the target task
-        case Repo.get(Task, task_id) do
-          nil ->
-            Repo.rollback("Task not found")
+      # Update the target task
+      case Repo.get(Task, task_id) do
+        nil ->
+          Repo.rollback("Task not found")
 
-          task ->
-            changes =
-              %{status: new_status}
-              |> maybe_add_timestamp()
+        task ->
+          changes =
+            %{status: new_status}
+            |> maybe_add_timestamp()
 
-            task
-            |> Task.changeset(changes)
-            |> Repo.update()
-            |> case do
-              {:ok, updated_task} -> convert_utc_to_local(updated_task)
-              error -> Repo.rollback(error)
-            end
-        end
-      end)
+          task
+          |> Task.changeset(changes)
+          |> Repo.update()
+          |> case do
+            {:ok, updated_task} -> convert_utc_to_local(updated_task)
+            error -> Repo.rollback(error)
+          end
+      end
     end)
     |> case do
       {:ok, task} -> {:ok, task}
@@ -165,9 +158,7 @@ defmodule OpenDevCoach.Tasks do
         {:error, "Task not found"}
 
       task ->
-        RepoHelper.retry_with_backoff(fn ->
-          Repo.delete(task)
-        end)
+        Repo.delete(task)
         |> case do
           {:ok, deleted_task} -> {:ok, convert_utc_to_local(deleted_task)}
           error -> error
@@ -191,9 +182,7 @@ defmodule OpenDevCoach.Tasks do
         {:error, "Task not found"}
 
       task ->
-        RepoHelper.retry_with_backoff(fn ->
-          Repo.delete(task)
-        end)
+        Repo.delete(task)
         |> case do
           {:ok, deleted_task} -> {:ok, convert_utc_to_local(deleted_task)}
           error -> error

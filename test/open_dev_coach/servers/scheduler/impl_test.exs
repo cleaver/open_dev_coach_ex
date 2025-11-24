@@ -1,10 +1,10 @@
 defmodule OpenDevCoach.Servers.Scheduler.ImplTest do
   use OpenDevCoach.DataCase, async: false
 
-  alias OpenDevCoach.Servers.Scheduler.Impl
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
+  alias OpenDevCoach.Servers.Scheduler.Impl
 
   describe "init/1" do
     test "initializes scheduler state with proper structure" do

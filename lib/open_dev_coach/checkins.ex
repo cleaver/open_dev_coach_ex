@@ -12,7 +12,6 @@ defmodule OpenDevCoach.Checkins do
   import Ecto.Query
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
-  alias OpenDevCoach.Helpers.Repo, as: RepoHelper
   alias OpenDevCoach.Repo
 
   @doc """
@@ -40,9 +39,7 @@ defmodule OpenDevCoach.Checkins do
   This is the "persistence" step for an async Task.
   """
   def persist_update_changeset(%Ecto.Changeset{} = changeset) do
-    RepoHelper.retry_with_backoff(fn ->
-      Repo.update(changeset)
-    end)
+    Repo.update(changeset)
   end
 
   @doc """
@@ -55,11 +52,9 @@ defmodule OpenDevCoach.Checkins do
       |> maybe_generate_id()
       |> convert_local_to_utc()
 
-    RepoHelper.retry_with_backoff(fn ->
-      %Checkin{}
-      |> Checkin.changeset(attrs)
-      |> Repo.insert()
-    end)
+    %Checkin{}
+    |> Checkin.changeset(attrs)
+    |> Repo.insert()
     |> case do
       {:ok, checkin} -> {:ok, convert_utc_to_local(checkin)}
       error -> error
@@ -121,11 +116,9 @@ defmodule OpenDevCoach.Checkins do
   def mark_past_scheduled_checkins_as_skipped do
     now = DateTime.utc_now()
 
-    RepoHelper.retry_with_backoff(fn ->
-      Checkin
-      |> where([c], c.status == "SCHEDULED" and c.scheduled_at < ^now)
-      |> Repo.update_all(set: [status: "SKIPPED"])
-    end)
+    Checkin
+    |> where([c], c.status == "SCHEDULED" and c.scheduled_at < ^now)
+    |> Repo.update_all(set: [status: "SKIPPED"])
   end
 
   @doc """
@@ -147,9 +140,7 @@ defmodule OpenDevCoach.Checkins do
   Deletes a check-in.
   """
   def delete_checkin(%Checkin{} = checkin) do
-    RepoHelper.retry_with_backoff(fn ->
-      Repo.delete(checkin)
-    end)
+    Repo.delete(checkin)
   end
 
   @doc """
