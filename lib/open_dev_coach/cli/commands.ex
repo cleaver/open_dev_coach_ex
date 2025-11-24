@@ -9,6 +9,7 @@ defmodule OpenDevCoach.CLI.Commands do
   alias OpenDevCoach.CLI.CheckinCommands
   alias OpenDevCoach.CLI.ConfigCommands
   alias OpenDevCoach.CLI.TaskCommands
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Returns the map of available commands for the REPL.
@@ -64,7 +65,6 @@ defmodule OpenDevCoach.CLI.Commands do
       • ai_provider  - AI service to use (gemini, openai, anthropic, ollama)
       • ai_model     - Model name for the provider
       • ai_api_key   - API key for external AI services
-      • timezone     - Your local timezone for scheduling check-ins
     """
 
     {:ok, help_text}
@@ -83,7 +83,7 @@ defmodule OpenDevCoach.CLI.Commands do
   This function routes user input to the AI coach for assistance.
   """
   def handle_unknown(input) do
-    case OpenDevCoach.Session.chat_with_ai(input) do
+    case Session.chat_with_ai(input) do
       {:ok, response} ->
         {:ok, response}
 

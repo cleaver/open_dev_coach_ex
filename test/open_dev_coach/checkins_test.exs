@@ -1,6 +1,6 @@
 defmodule OpenDevCoach.CheckinsTest do
+  use OpenDevCoach.DataCase, async: false
   alias OpenDevCoach.CheckinFixtures
-  use OpenDevCoach.DataCase
   alias OpenDevCoach.Checkins
   alias OpenDevCoach.Checkins.Checkin
   alias OpenDevCoach.Helpers.Date, as: DateHelper
@@ -97,7 +97,9 @@ defmodule OpenDevCoach.CheckinsTest do
     end
 
     test "returns nil when checkin does not exist" do
-      assert Checkins.get_checkin(999_999) == nil
+      # Using a valid UUID format that doesn't exist in the database
+      fake_id = "00000000-0000-0000-0000-000000000000"
+      assert Checkins.get_checkin(fake_id) == nil
     end
 
     test "returns checkin with converted timezone" do
@@ -241,22 +243,6 @@ defmodule OpenDevCoach.CheckinsTest do
     end
   end
 
-  describe "change_checkin_status/2" do
-    setup [:scheduled_checkin]
-
-    test "changes checkin status", %{scheduled_checkin: scheduled_checkin} do
-      {:ok, updated_checkin} = Checkins.change_checkin_status(scheduled_checkin, "SKIPPED")
-
-      assert updated_checkin.status == "SKIPPED"
-    end
-
-    test "validates status value", %{scheduled_checkin: scheduled_checkin} do
-      {:error, changeset} = Checkins.change_checkin_status(scheduled_checkin, "INVALID_STATUS")
-
-      assert %{status: ["is invalid"]} = errors_on(changeset)
-    end
-  end
-
   describe "complete_checkin/1" do
     setup [:scheduled_checkin]
 
@@ -374,8 +360,9 @@ defmodule OpenDevCoach.CheckinsTest do
     end
 
     test "handles invalid ID for get_checkin" do
-      assert Checkins.get_checkin(999_999) == nil
-      assert Checkins.get_checkin(0) == nil
+      # Using valid UUID formats that don't exist in the database
+      fake_id = "00000000-0000-0000-0000-000000000000"
+      assert Checkins.get_checkin(fake_id) == nil
     end
 
     test "handles update with empty attributes" do
@@ -390,14 +377,14 @@ defmodule OpenDevCoach.CheckinsTest do
       {:ok, checkin} = Checkins.create_checkin(valid_checkin_attrs())
       assert checkin.status == "SCHEDULED"
 
-      {:ok, checkin} = Checkins.change_checkin_status(checkin, "SKIPPED")
+      {:ok, checkin} = Checkins.update_checkin(checkin, %{status: "SKIPPED"})
       assert checkin.status == "SKIPPED"
 
       {:ok, checkin} = Checkins.complete_checkin(checkin)
       assert checkin.status == "COMPLETED"
       assert checkin.completed_at
 
-      {:ok, checkin} = Checkins.change_checkin_status(checkin, "CANCELLED")
+      {:ok, checkin} = Checkins.update_checkin(checkin, %{status: "CANCELLED"})
       assert checkin.status == "CANCELLED"
     end
   end

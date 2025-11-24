@@ -3,7 +3,7 @@ defmodule OpenDevCoach.AI.IntegrationTest do
 
   alias OpenDevCoach.CLI.Commands
   alias OpenDevCoach.Configuration
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.Servers.Session
 
   setup do
     # Clean up any existing configuration
@@ -17,13 +17,13 @@ defmodule OpenDevCoach.AI.IntegrationTest do
       assert {:error, _} = Session.chat_with_ai("Hello")
 
       # 2. Configure Gemini provider
-      Configuration.set_config("ai_provider", "gemini")
+      Configuration.set_config("ai_provider", "google")
       Configuration.set_config("ai_api_key", "test_key")
-      Configuration.set_config("ai_model", "gemini-pro")
+      Configuration.set_config("ai_model", "gemini-2.5-flash")
 
       # 3. Test that provider is now recognized
-      provider = OpenDevCoach.AI.get_configured_provider()
-      assert provider == :gemini
+      {:ok, provider_name} = OpenDevCoach.AI.get_configured_provider_name()
+      assert provider_name == "google"
 
       # 4. Test that chat now fails due to invalid API key, not missing provider
       result = Session.chat_with_ai("Hello")
@@ -44,7 +44,7 @@ defmodule OpenDevCoach.AI.IntegrationTest do
 
     test "ai_factory_routing" do
       # Test that AI factory properly routes to configured provider
-      Configuration.set_config("ai_provider", "gemini")
+      Configuration.set_config("ai_provider", "google")
       Configuration.set_config("ai_api_key", "test_key")
 
       result = OpenDevCoach.AI.chat([%{role: "user", content: "Hello"}])
@@ -55,7 +55,7 @@ defmodule OpenDevCoach.AI.IntegrationTest do
       Configuration.set_config("ai_provider", "unknown")
       result = OpenDevCoach.AI.chat([%{role: "user", content: "Hello"}])
       assert {:error, _} = result
-      assert String.contains?(elem(result, 1), "Unknown AI provider: unknown")
+      assert String.contains?(elem(result, 1), "Unknown or unsupported AI provider: unknown")
     end
   end
 end

@@ -1,6 +1,8 @@
 defmodule OpenDevCoach.SchedulerTest do
   use OpenDevCoach.DataCase, async: false
-  alias OpenDevCoach.Scheduler
+
+  alias OpenDevCoach.Helpers.Date, as: DateHelper
+  alias OpenDevCoach.Servers.Scheduler
 
   describe "time parsing" do
     test "parses HH:MM format correctly" do
@@ -9,16 +11,20 @@ defmodule OpenDevCoach.SchedulerTest do
       future_hour = if future_hour > 23, do: 0, else: future_hour
 
       time_str = "#{String.pad_leading("#{future_hour}", 2, "0")}:30"
-      assert {:ok, checkin_id} = Scheduler.add_checkin(time_str, "Future check-in")
-      checkin = OpenDevCoach.Checkins.get_checkin(checkin_id)
+      assert {:ok, added_checkin, _list} = Scheduler.add_checkin(time_str, "Future check-in")
 
-      # The time should be scheduled for the future
-      assert DateTime.compare(checkin.scheduled_at, DateTime.utc_now()) == :gt
+      assert DateTime.compare(added_checkin.scheduled_at, DateTime.utc_now()) == :gt
     end
 
     test "parses interval format correctly" do
-      assert {:ok, _checkin_id} = Scheduler.add_checkin("2h 30m", "Interval check-in")
-      assert {:ok, _checkin_id} = Scheduler.add_checkin("30m", "Short interval")
+      time_now = DateHelper.local_datetime_now()
+      expected_time = Timex.shift(time_now, hours: 2, minutes: 30)
+      assert {:ok, added_checkin, _list} = Scheduler.add_checkin("2h 30m", "Interval check-in")
+      assert Timex.compare(added_checkin.scheduled_at, expected_time, :minutes) == 0
+
+      expected_time = Timex.shift(time_now, minutes: 30)
+      assert {:ok, added_checkin, _list} = Scheduler.add_checkin("30m", "Short interval")
+      assert Timex.compare(added_checkin.scheduled_at, expected_time, :minutes) == 0
     end
 
     test "rejects invalid time formats" do
@@ -29,17 +35,19 @@ defmodule OpenDevCoach.SchedulerTest do
 
   describe "check-in management" do
     test "can add and list check-ins" do
-      {:ok, checkin_id} = Scheduler.add_checkin("10:00", "Test check-in")
-      checkins = Scheduler.list_checkins()
-      assert length(checkins) >= 1
-      assert Enum.any?(checkins, fn c -> c.id == checkin_id end)
+      {:ok, checkin, checkins} = Scheduler.add_checkin("10:00", "Test check-in")
+      checkins_without_ordinal = Enum.map(checkins, &elem(&1, 0))
+      assert length(checkins_without_ordinal) >= 1
+      assert Enum.any?(checkins_without_ordinal, fn c -> c.id == checkin.id end)
     end
 
     test "can remove check-ins" do
-      {:ok, checkin_id} = Scheduler.add_checkin("11:00", "To be removed")
-      assert {:ok, _message} = Scheduler.remove_checkin(checkin_id)
-      checkins = Scheduler.list_checkins()
-      refute Enum.any?(checkins, fn c -> c.id == checkin_id end)
+      {:ok, checkin, checkin_list} = Scheduler.add_checkin("11:00", "To be removed")
+      {_checkin, ordinal} = find_checkin_by_id(checkin_list, checkin.id)
+      assert {:ok, _message} = Scheduler.remove_checkin(ordinal)
+      {:ok, checkins} = Scheduler.list_checkins()
+      checkins_without_ordinal = Enum.map(checkins, &elem(&1, 0))
+      refute Enum.any?(checkins_without_ordinal, fn c -> c.id == checkin.id end)
     end
 
     test "creates one-time check-ins (not recurring)" do
@@ -48,8 +56,7 @@ defmodule OpenDevCoach.SchedulerTest do
       future_hour = if future_hour > 23, do: 0, else: future_hour
 
       time_str = "#{String.pad_leading("#{future_hour}", 2, "0")}:00"
-      {:ok, checkin_id} = Scheduler.add_checkin(time_str, "One-time test")
-      checkin = OpenDevCoach.Checkins.get_checkin(checkin_id)
+      {:ok, checkin, _list} = Scheduler.add_checkin(time_str, "One-time test")
 
       # Status could be SCHEDULED or SKIPPED depending on when the test runs
       # relative to the scheduler startup
@@ -59,5 +66,9 @@ defmodule OpenDevCoach.SchedulerTest do
       # After execution, should be marked as COMPLETED
       # (This would be tested in integration tests with actual execution)
     end
+  end
+
+  defp find_checkin_by_id(checkin_list, id) do
+    Enum.find(checkin_list, &(Map.get(elem(&1, 0), :id) == id))
   end
 end

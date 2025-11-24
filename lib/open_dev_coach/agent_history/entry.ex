@@ -6,6 +6,17 @@ defmodule OpenDevCoach.AgentHistory.Entry do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :binary_id, autogenerate: true}
+
+  @type t() :: %__MODULE__{
+          id: binary(),
+          role: String.t(),
+          content: String.t(),
+          timestamp: DateTime.t()
+        }
+
+  @required_fields [:role, :content, :timestamp]
+
   schema "agent_history" do
     field(:role, :string)
     field(:content, :string)
@@ -17,8 +28,8 @@ defmodule OpenDevCoach.AgentHistory.Entry do
   @doc false
   def changeset(entry, attrs) do
     entry
-    |> cast(attrs, [:role, :content, :timestamp])
-    |> validate_required([:role, :content, :timestamp])
+    |> cast(attrs, @required_fields)
+    |> validate_required(@required_fields)
     |> validate_inclusion(:role, ["user", "assistant", "system"])
     |> validate_length(:content, min: 1, max: 10_000)
   end

@@ -3,14 +3,21 @@ import Config
 # Configure your database
 config :open_dev_coach, OpenDevCoach.Repo,
   database: Path.expand("../open_dev_coach.db", Path.dirname(__ENV__.file)),
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+  pool_size: 5,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
 
 # Configure timezone for development
 config :open_dev_coach,
-  timezone: "America/New_York"
+  timezone: "America/New_York",
+  test_ai: true
 
-# Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger,
+  backends: [{LoggerFileBackend, :file_log}]
+
+config :logger, :file_log,
+  path: "log/odc.dev.log",
+  level: :debug
 
 # Git hooks
 config :git_hooks,
@@ -26,7 +33,7 @@ config :git_hooks,
       verbose: false,
       tasks: [
         {:cmd, "mix dialyzer"},
-        {:cmd, "mix test --color"},
+        {:cmd, "mix test"},
         {:cmd, "mix credo --strict"}
       ]
     ]

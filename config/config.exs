@@ -2,12 +2,21 @@ import Config
 
 # Configure your database
 config :open_dev_coach, OpenDevCoach.Repo,
-  database: Path.expand("../open_dev_coach.db", Path.dirname(__ENV__.file)),
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+  database: Path.expand("../open_dev_coach.db", Path.dirname(__ENV__.file))
+
+# Set a default pool size for non-test environments.
+# This is explicitly not set for the :test environment because it conflicts
+# with the Ecto Sandbox pool.
+if Mix.env() != :test do
+  config :open_dev_coach, OpenDevCoach.Repo,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+end
 
 # Configure Ecto
 config :open_dev_coach,
-  ecto_repos: [OpenDevCoach.Repo]
+  ecto_repos: [OpenDevCoach.Repo],
+  async_persistence: true,
+  notifications_enabled: true
 
 # Configure timezone (default to America/New_York, can be overridden in environment configs)
 config :open_dev_coach,

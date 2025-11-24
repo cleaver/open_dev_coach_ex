@@ -5,8 +5,10 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   This module handles all task-related CLI operations including
   adding, listing, starting, completing, removing, and backing up tasks.
   """
+  require Logger
 
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.CLI.Views.TaskView
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Dispatches task-related commands based on the first argument.
@@ -42,8 +44,12 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def add(description) when byte_size(description) > 0 do
     case Session.add_task(description) do
-      {:ok, message} -> {:ok, message}
-      {:error, message} -> {:error, message}
+      {:ok, tasks} ->
+        {:ok, TaskView.format(tasks)}
+
+      {:error, message} ->
+        Logger.error("Failed to add task: #{message}")
+        {:error, message}
     end
   end
 
@@ -54,8 +60,12 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def list(_args) do
     case Session.list_tasks() do
-      {:ok, message} -> {:ok, message}
-      {:error, message} -> {:error, message}
+      {:ok, tasks} ->
+        {:ok, TaskView.format(tasks)}
+
+      {:error, message} ->
+        Logger.error("Failed to list tasks: #{message}")
+        {:error, message}
     end
   end
 
@@ -64,13 +74,17 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def start(task_number) do
     case parse_task_number(task_number) do
-      {:ok, task_id} ->
-        case Session.start_task(task_id) do
-          {:ok, message} -> {:ok, message}
-          {:error, message} -> {:error, message}
+      {:ok, task_order} ->
+        case Session.start_task(task_order) do
+          {:ok, tasks} ->
+            {:ok, TaskView.format(tasks)}
+
+          {:error, message} ->
+            {:error, message}
         end
 
       {:error, message} ->
+        Logger.error("Failed to start task: #{message}")
         {:error, message}
     end
   end
@@ -80,13 +94,14 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def complete(task_number) do
     case parse_task_number(task_number) do
-      {:ok, task_id} ->
-        case Session.complete_task(task_id) do
+      {:ok, task_order} ->
+        case Session.complete_task(task_order) do
           {:ok, message} -> {:ok, message}
           {:error, message} -> {:error, message}
         end
 
       {:error, message} ->
+        Logger.error("Failed to complete task: #{message}")
         {:error, message}
     end
   end
@@ -96,13 +111,14 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def remove(task_number) do
     case parse_task_number(task_number) do
-      {:ok, task_id} ->
-        case Session.remove_task(task_id) do
+      {:ok, task_order} ->
+        case Session.remove_task(task_order) do
           {:ok, message} -> {:ok, message}
           {:error, message} -> {:error, message}
         end
 
       {:error, message} ->
+        Logger.error("Failed to remove task: #{message}")
         {:error, message}
     end
   end
@@ -112,26 +128,19 @@ defmodule OpenDevCoach.CLI.TaskCommands do
   """
   def backup(_args) do
     case Session.backup_tasks() do
-      {:ok, message} -> {:ok, message}
-      {:error, message} -> {:error, message}
+      {:ok, message} ->
+        {:ok, message}
+
+      {:error, message} ->
+        Logger.error("Failed to backup tasks: #{message}")
+        {:error, message}
     end
   end
-
-  # Private Functions
 
   defp parse_task_number(task_number) do
     case Integer.parse(task_number) do
       {number, ""} when number > 0 ->
-        # Convert display number to actual task ID by listing tasks and finding the right one
-        case Session.list_tasks() do
-          {:ok, _message} ->
-            # For now, we'll use the display number as the task ID
-            # In a more sophisticated implementation, we'd map display numbers to actual IDs
-            {:ok, number}
-
-          {:error, message} ->
-            {:error, "Failed to list tasks: #{message}"}
-        end
+        {:ok, number}
 
       _ ->
         {:error, "Invalid task number. Please provide a positive integer."}

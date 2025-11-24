@@ -105,22 +105,35 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 **Goal:** Add desktop notifications for check-ins and improve the overall user experience.
 
-- [ ] **Notifier Module:**
-    - [ ] Create the `OpenDevCoach.Notifier` module with a `notify/2` function that calls the appropriate OS-specific command-line tool.
-- [ ] **Integration:**
-    - [ ] Call `Notifier.notify/2` from the `Session`'s `:checkin` handler.
-- [ ] **UI/UX Enhancements:**
+- [x] **7.1 Notifier Module:**
+    - [x] Create the `OpenDevCoach.Notifier` module with a `notify/2` function that calls the appropriate OS-specific command-line tool.
+- [x] **7.2 Integration:**
+    - [x] Call `Notifier.notify/2` from the `Session`'s `:checkin` handler.
+- [ ] **7.3 UI/UX Enhancements:**
     - [ ] Configure the `tio_comodo` colorscheme in `config/config.exs`.
     - [ ] Use `Owl` within the `CLI.Commands` module to add color and formatting to command output.
     - [ ] Add a loading message before long-running calls (e.g., to the AI).
-- [ ] **Prompt Engineering:**
+- [ ] **7.4 Prompt Engineering:**
     - [ ] Refine the system prompt used in the `Session` GenServer for check-ins.
-- [ ] **Testing & Documentation:**
+- [ ] **7.5 Testing & Documentation:**
     - [ ] Write ExUnit tests for key modules.
     - [ ] Update the `README.md` with full setup and usage instructions.
     - [ ] Add `@moduledoc` and `@doc` annotations.
 
 ## Additional Todos
+
+### [ADD-0] UUIDs
+- [ ] Switch everything to UUIDs
+    - [ ] tasks
+        - [x] generate ID for tasks genserver state
+        - [x] format with ordinal in same manner as checkins
+        - [ ] ensure removal by ordinal works properly
+    - [x] checkins
+        - [x] generate ID for scheduler genserver state
+        - [x] format the checkins with ordinal
+        - [x] handle remove by ordinal
+    - [ ] ~~config~~
+    - [ ] agent history
 
 ### [ADD-1] Archive Tasks
 - [ ] Add a task archive status.
@@ -135,10 +148,64 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 ### [ADD-3] Config tweaks
 - [ ] Handle quotes for tasks
 - [ ] Handle quotes for config
-- [ ] Obfuscate ai key
+- [x] Obfuscate ai key
 
 ### [ADD-4] Recurring checkins
 - [ ] Add command like `/checkin add repeat 9:30 Morning checkin`.
 
+### [ADD-5] Logging
+- [x] Configure logging to a file.
+
+### [ADD-6] API calls in spawned process.
+- [ ] Spawn API calls as a process
+- [ ] Send response to Session on completion or failure.
+
 ### Bugs
-- [ ] Order of tasks doesn't match up correctly.
+- [x] Order of tasks doesn't match up correctly.
+
+### Refactoring
+- [x] agent_history/entry - use @required, etc. fn for keywords
+- [x] ai/model_validator.ex
+  - [x] decide whether to use `provider:model`
+    - [ ] ~~change in necessary~~ No change
+- [x] `cli/views/checkin_view.ex`
+  - [x] set date standard across app - in config.ex
+- [x] `cli/checkin_commands.ex`
+  - [x] log error conditions
+- [x] `cli/config_commands.ex`
+  - [x] fix `/config test` doesn't do anything
+  - [x] log error conditions
+- [x] `cli/task_commands.ex`
+  - [x] log error conditions
+- [x] `helpers/persistence.ex`
+  - [x] add a delete function
+- [ ] `servers/scheduler/impl.ex`
+  - [x] update remove_checkin to use new function
+- [ ] session genserver
+  - [ ] `servers/session.ex`
+    - [ ] `test_ai_config()` doesn't do anything
+  - [ ] `servers/session/server.ex`
+    - [ ] `test_ai_config` keep or delete? Call from `/config test`?
+  - [ ] `servers/session/impl.ex`
+    - [ ] no `test_ai_config` handling
+  - [x] refactor `task`
+    - [x] use persistence functions for updates
+    - [x] use persistence functions for remove
+  - [x] refactor `config`
+    - [x] use persistence functions for add
+    - [x] use persistence functions for updates
+    - [ ] ~~use persistence functions for remove~~
+  - [ ] refactor `message_history`
+    - [ ] use persistence functions for add
+  - [ ] deep exploration of ai chat
+  - [ ] refactor `handle_successful_ai_response` and `handle_ai_error`
+    - [ ] we can assume checkin.scheduled_at is local time not UTC
+    - [ ] `format_datetime()` can be replaced
+- [ ] `ai.ex`
+  - [ ] log error cases
+  - [ ] 
+- [ ] error logging - search for unlogged error states
+- [ ] Use consistent write-behind pattern
+  - [ ] extend persistence modules
+  - [ ] persistence modules should launch all IO from genservers
+

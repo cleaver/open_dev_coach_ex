@@ -5,9 +5,11 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   This module handles all `/config` subcommands, delegating the actual
   logic to the Session GenServer.
   """
+  require Logger
 
+  alias OpenDevCoach.CLI.Views.ConfigView
   alias OpenDevCoach.Configuration.Config
-  alias OpenDevCoach.Session
+  alias OpenDevCoach.Servers.Session
 
   @doc """
   Dispatches configuration commands to the appropriate handler.
@@ -27,8 +29,12 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def set_config(key, value) do
     case Session.set_config(key, value) do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, message} ->
+        {:ok, ConfigView.format_message(message)}
+
+      {:error, reason} ->
+        Logger.error("Failed to set config: #{reason}")
+        {:error, reason}
     end
   end
 
@@ -37,8 +43,12 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def get_config(key) do
     case Session.get_config(key) do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, {key, value}} ->
+        {:ok, ConfigView.format_single(key, value)}
+
+      {:error, key} ->
+        Logger.error("Failed to get config: #{key}")
+        {:ok, ConfigView.format_not_found(key)}
     end
   end
 
@@ -47,8 +57,12 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def list_configs do
     case Session.list_configs() do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, configs} ->
+        {:ok, ConfigView.format(configs)}
+
+      {:error, reason} ->
+        Logger.error("Failed to list configs: #{reason}")
+        {:error, reason}
     end
   end
 
@@ -57,8 +71,12 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def reset_config do
     case Session.reset_config() do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, message} ->
+        {:ok, ConfigView.format_message(message)}
+
+      {:error, reason} ->
+        Logger.error("Failed to reset config: #{reason}")
+        {:error, reason}
     end
   end
 
@@ -83,8 +101,12 @@ defmodule OpenDevCoach.CLI.ConfigCommands do
   """
   def test_config do
     case Session.test_ai_config() do
-      {:ok, message} -> {:ok, message}
-      {:error, reason} -> {:error, reason}
+      {:ok, message} ->
+        Logger.info("Test config successful: #{message}")
+        {:ok, message}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 end

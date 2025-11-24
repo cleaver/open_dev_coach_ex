@@ -1,5 +1,5 @@
 defmodule OpenDevCoach.Helpers.DateTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   alias OpenDevCoach.Helpers.Date, as: DateHelper
   doctest OpenDevCoach.Helpers.Date
 

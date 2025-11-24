@@ -3,13 +3,13 @@ defmodule OpenDevCoach.CLI.CommandsTest do
 
   alias OpenDevCoach.CLI.Commands
 
-  # TODO: Maybe not useful tests.
   describe "CLI Commands" do
     test "commands/0 returns expected command map" do
       commands = Commands.commands()
       assert Map.has_key?(commands, "/help")
       assert Map.has_key?(commands, "/quit")
       assert Map.has_key?(commands, "/task")
+      assert Map.has_key?(commands, "/checkin")
       assert Map.has_key?(commands, "/config")
       assert Map.has_key?(commands, "catchall_handler")
       assert length(Map.keys(commands)) == 6

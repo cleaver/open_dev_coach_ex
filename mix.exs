@@ -32,10 +32,12 @@ defmodule OpenDevCoach.MixProject do
       {:ecto_sqlite3, "~> 0.12"},
       {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:jason, "~> 1.4"},
+      {:logger_file_backend, "~> 0.0.14"},
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:req, "~> 0.4"},
+      {:req_llm, "~> 1.0"},
       {:timex, "~> 3.0"},
-      {:tio_comodo, "~> 0.1.1"},
+      {:tio_comodo, "~> 0.1.3"},
       {:tzdata, "~> 1.1"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}

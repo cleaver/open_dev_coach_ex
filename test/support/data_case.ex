@@ -33,22 +33,6 @@ defmodule OpenDevCoach.DataCase do
     :ok
   end
 
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OpenDevCoach.Repo)
-
-    servers_to_allow = [OpenDevCoach.Session, OpenDevCoach.Scheduler]
-
-    Enum.each(servers_to_allow, fn server ->
-      pid = Process.whereis(server)
-
-      if pid do
-        Ecto.Adapters.SQL.Sandbox.allow(OpenDevCoach.Repo, self(), pid)
-      end
-    end)
-
-    :ok
-  end
-
   @doc """
   Sets up the sandbox based on the test tags.
   """
