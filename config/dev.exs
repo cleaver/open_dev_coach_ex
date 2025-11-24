@@ -3,7 +3,9 @@ import Config
 # Configure your database
 config :open_dev_coach, OpenDevCoach.Repo,
   database: Path.expand("../open_dev_coach.db", Path.dirname(__ENV__.file)),
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+  pool_size: 5,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
 
 # Configure timezone for development
 config :open_dev_coach,
