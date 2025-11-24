@@ -148,34 +148,34 @@ defmodule OpenDevCoach.Servers.Session.Impl do
         true
 
       {dt1, dt2} ->
-        # Handle both DateTime and NaiveDateTime
-        comparison =
-          cond do
-            match?(%DateTime{}, dt1) and match?(%DateTime{}, dt2) ->
-              DateTime.compare(dt1, dt2)
+        compare_datetimes(dt1, dt2) == :gt
+    end
+  end
 
-            match?(%NaiveDateTime{}, dt1) and match?(%NaiveDateTime{}, dt2) ->
-              NaiveDateTime.compare(dt1, dt2)
+  defp compare_datetimes(dt1, dt2) do
+    cond do
+      match?(%DateTime{}, dt1) and match?(%DateTime{}, dt2) ->
+        DateTime.compare(dt1, dt2)
 
-            match?(%NaiveDateTime{}, dt1) ->
-              # Convert NaiveDateTime to DateTime for comparison
-              dt1_as_dt = DateTime.from_naive!(dt1, "Etc/UTC")
-              DateTime.compare(dt1_as_dt, dt2)
+      match?(%NaiveDateTime{}, dt1) and match?(%NaiveDateTime{}, dt2) ->
+        NaiveDateTime.compare(dt1, dt2)
 
-            match?(%NaiveDateTime{}, dt2) ->
-              # Convert NaiveDateTime to DateTime for comparison
-              dt2_as_dt = DateTime.from_naive!(dt2, "Etc/UTC")
-              DateTime.compare(dt1, dt2_as_dt)
+      match?(%NaiveDateTime{}, dt1) ->
+        # Convert NaiveDateTime to DateTime for comparison
+        dt1_as_dt = DateTime.from_naive!(dt1, "Etc/UTC")
+        DateTime.compare(dt1_as_dt, dt2)
 
-            true ->
-              # Fallback: convert both to comparable format
-              NaiveDateTime.compare(
-                DateTime.to_naive(dt1),
-                DateTime.to_naive(dt2)
-              )
-          end
+      match?(%NaiveDateTime{}, dt2) ->
+        # Convert NaiveDateTime to DateTime for comparison
+        dt2_as_dt = DateTime.from_naive!(dt2, "Etc/UTC")
+        DateTime.compare(dt1, dt2_as_dt)
 
-        comparison == :gt
+      true ->
+        # Fallback: convert both to comparable format
+        NaiveDateTime.compare(
+          DateTime.to_naive(dt1),
+          DateTime.to_naive(dt2)
+        )
     end
   end
 
