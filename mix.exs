@@ -28,8 +28,9 @@ defmodule OpenDevCoach.MixProject do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ecto, "~> 3.10"},
-      {:ecto_sqlite3, "~> 0.12"},
+      {:ecto_sql, "~> 3.10"},
+      # {:ecto_sqlite3, "~> 0.12"},
+      {:postgrex, ">= 0.0.0"},
       {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:jason, "~> 1.4"},
       {:logger_file_backend, "~> 0.0.14"},

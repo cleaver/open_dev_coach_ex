@@ -2,10 +2,13 @@ import Config
 
 # Configure your database
 config :open_dev_coach, OpenDevCoach.Repo,
-  database: Path.expand("../open_dev_coach.db", Path.dirname(__ENV__.file)),
-  pool_size: 5,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "odc_dev",
   stacktrace: true,
-  show_sensitive_data_on_connection_error: true
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
 
 # Configure timezone for development
 config :open_dev_coach,
