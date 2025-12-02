@@ -161,7 +161,7 @@ defmodule OpenDevCoach.Servers.Scheduler.Impl do
         {state, state}
 
       checkin ->
-        Session.handle_checkin(checkin)
+        _ = Session.handle_checkin(checkin)
 
         {updated_checkin, new_state} =
           update_checkin(state, checkin, %{
