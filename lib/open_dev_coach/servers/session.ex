@@ -37,7 +37,7 @@ defmodule OpenDevCoach.Servers.Session do
   It will gather context and call the AI system for a coaching response.
   """
   def handle_checkin(checkin) do
-    GenServer.cast(server_name(), {:handle_checkin, checkin})
+    GenServer.call(server_name(), {:handle_checkin, checkin})
   end
 
   # Task Management Functions

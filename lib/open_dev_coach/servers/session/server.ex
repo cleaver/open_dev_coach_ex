@@ -99,10 +99,9 @@ defmodule OpenDevCoach.Servers.Session.Server do
 
   # Check-in handling
 
-  @impl true
-  def handle_cast({:handle_checkin, checkin}, state) do
-    {_result, new_state} = Impl.handle_checkin(state, checkin)
-    {:noreply, new_state}
+  def handle_call({:handle_checkin, checkin}, _from, state) do
+    {result, new_state} = Impl.handle_checkin(state, checkin)
+    {:reply, result, new_state}
   end
 
   @impl true
