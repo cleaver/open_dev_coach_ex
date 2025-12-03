@@ -162,6 +162,8 @@ Config keys include `ai_provider`, `ai_model`, `ai_api_key`, `prompt` (Let user 
 
 ### Bugs
 - [x] Order of tasks doesn't match up correctly.
+- [x] `/checkin list` command is missing space between date and description.
+- [ ] checkin AI output not displayed.
 
 ### Refactoring
 - [x] agent_history/entry - use @required, etc. fn for keywords
