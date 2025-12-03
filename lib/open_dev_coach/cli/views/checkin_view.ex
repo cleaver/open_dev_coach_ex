@@ -22,8 +22,8 @@ defmodule OpenDevCoach.CLI.Views.CheckinView do
         checkins
         |> Enum.map_join("\n", fn {checkin, index} ->
           scheduled_str = DateHelper.format_datetime(checkin.scheduled_at)
-          desc = if checkin.description, do: checkin.description, else: ""
-          "  #{index}. #{scheduled_str}#{desc} (#{checkin.status})"
+          desc = if checkin.description, do: " #{checkin.description}", else: ""
+          "  #{index}. #{scheduled_str}#{desc} [#{checkin.status}]"
         end)
         |> then(&"Scheduled Check-ins:\n#{&1}")
     end
